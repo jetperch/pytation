@@ -14,7 +14,6 @@
 
 import unittest
 from pytation.progress import parse, lookup, Progress
-import numpy as np
 
 
 TXT1 = """\
@@ -71,15 +70,15 @@ class TestLookup(unittest.TestCase):
         self.assertGreater(lookup(tbl, '', '__exit__'), 0.99)
 
     def test_exact(self):
-        np.testing.assert_approx_equal(lookup(tbl, 'program.controller', 'find bootloader'), 0.13092186461596886)
+        self.assertAlmostEqual(lookup(tbl, 'program.controller', 'find bootloader'), 0.13092186461596886)
 
     def test_float(self):
         s_enter = lookup(tbl, 'program.sensor.firmware', '__enter__')
         s_exit = lookup(tbl, 'program.sensor.firmware', '__exit__')
         s_mid = (s_exit + s_enter) / 2
-        np.testing.assert_approx_equal(lookup(tbl, 'program.sensor.firmware', 0.0), s_enter)
-        np.testing.assert_approx_equal(lookup(tbl, 'program.sensor.firmware', 1.0), s_exit)
-        np.testing.assert_approx_equal(lookup(tbl, 'program.sensor.firmware', 0.5), s_mid)
+        self.assertAlmostEqual(lookup(tbl, 'program.sensor.firmware', 0.0), s_enter)
+        self.assertAlmostEqual(lookup(tbl, 'program.sensor.firmware', 1.0), s_exit)
+        self.assertAlmostEqual(lookup(tbl, 'program.sensor.firmware', 0.5), s_mid)
 
     def test_class(self):
         c = Progress(TXT1)
@@ -88,5 +87,4 @@ class TestLookup(unittest.TestCase):
         
     def test_wait(self):
         tbl = parse(TXT2)
-        np.testing.assert_approx_equal(lookup(tbl, 's.hi', 'world'), 1/3)
-        
+        self.assertAlmostEqual(lookup(tbl, 's.hi', 'world'), 1/3)
