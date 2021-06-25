@@ -1,0 +1,10 @@
+<RCC>
+  <qresource prefix="/station">
+    <file>abort.jpg</file>
+    <file>fail.jpg</file>
+    <file>in_progress.jpg</file>
+    <file>initialize.jpg</file>
+    <file>pass.jpg</file>
+    <file>wait_for_dut.jpg</file>
+  </qresource>
+</RCC>

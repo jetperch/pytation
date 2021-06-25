@@ -1,0 +1,4 @@
+include CHANGELOG.md
+include README.md
+include LICENSE.txt
+include pytation_examples/pytation_examples.rcc
