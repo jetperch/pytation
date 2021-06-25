@@ -169,7 +169,7 @@ setuptools.setup(
         'Topic :: Scientific/Engineering',
         'Topic :: Software Development :: Embedded Systems',
         'Topic :: Software Development :: Testing',
-        'Topic :: System :: Hardware'
+        'Topic :: System :: Hardware',
         'Topic :: Utilities',
     ],
 
@@ -191,7 +191,6 @@ setuptools.setup(
     # https://numpy.org/neps/nep-0029-deprecation_policy.html
     install_requires=[
         'fs',
-        'pyinstaller'
         'PySide6',
     ] + PLATFORM_INSTALL_REQUIRES,
 
