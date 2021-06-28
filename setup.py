@@ -200,7 +200,7 @@ setuptools.setup(
 
     entry_points={
         'console_scripts': [
-            'pytation=pytation.__main__',
+            'pytation=pytation.__main__.run',
         ],
     },
     

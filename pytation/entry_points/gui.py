@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import logging
-from pytation import station_loader
+from pytation import loader
 from pytation import gui_runner
 
 log = logging.getLogger(__name__)
@@ -21,10 +21,10 @@ log = logging.getLogger(__name__)
 
 def parser_config(p):
     """Graphical user interface runner."""
-    station_loader.parser_config(p)
+    loader.parser_config(p)
     return on_cmd
 
 
 def on_cmd(args):
-    station = station_loader.load(args)
+    station = loader.load(args)
     return gui_runner.run(station)

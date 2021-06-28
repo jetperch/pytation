@@ -19,6 +19,7 @@ Test the Context class.
 import unittest
 from unittest.mock import Mock
 from pytation import Context, declare_test
+from pytation.loader import validate
 
 
 @declare_test(['eq2'])
@@ -41,7 +42,7 @@ def state_in_progress(context, config):
 
 class TestContext(unittest.TestCase):
 
-    def _station1(self, name):
+    def _station1(self, name, skip_validate=False):
         self.test1 = Mock()
         self.test1.return_value = 0
         self.test1.DEVICES = ['dut', 'eq1']
@@ -70,7 +71,9 @@ class TestContext(unittest.TestCase):
                 {'name': 'dut', 'clz': self.dut, 'lifecycle': 'suite', 'config': {'mode': 'test'}},
             ],
         }
-        return station
+        if skip_validate:
+            return station
+        return validate(station)
 
     def test_station_start_and_stop(self):
         context = Context(self._station1('test_station_start_and_stop'))
@@ -111,8 +114,9 @@ class TestContext(unittest.TestCase):
         context.station_stop()
 
     def test_with_required_device_not_present(self):
-        station = self._station1('test_with_required_device_not_present')
+        station = self._station1('test_with_required_device_not_present', skip_validate=True)
         station['tests'][0]['fn'] = needs_eq2
+        station = validate(station)
         context = Context(station)
         context.station_start()
         self.assertEqual(-1, context.suite_run())

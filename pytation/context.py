@@ -19,6 +19,7 @@ Handle test context.
 
 from pytation import time, __version__
 from pytation.progress import Progress
+from pytation.loader import SETUP_TEARDOWN_FN, ENV_EXCLUDE
 from fs.zipfs import WriteZipFS
 import collections
 import importlib
@@ -29,20 +30,11 @@ import logging
 
 
 _FILE_FMT = "%(levelname)s:%(asctime)s:%(filename)s:%(lineno)d:%(name)s:%(message)s"
-_LOG_PATH_DEFAULT = '{base_path}/{station}/log/{station_timestr}_{process_id}.log'
-_OUTPUT_PATH_DEFAULT = '{base_path}/{station}/data/{suite_timestr}.zip'
-_PROGRESS_PATH_DEFAULT = '{base_path}/{station}/progress.csv'
 _VALID_CHARS = \
     '-_. ' \
     + ''.join([chr(ord('a') + a) for a in range(26)]) \
     + ''.join([chr(ord('a') + a) for a in range(26)]) \
     + ''.join([chr(ord('0') + a) for a in range(10)])
-_DEVICE_LIFECYCLE = ['station', 'suite', 'test', 'manual']  # defaults to 'station'
-SETUP_TEARDOWN_FN = [
-    'station_setup', 'station_teardown',
-    'suite_setup', 'suite_teardown',
-    'test_setup', 'test_teardown',
-]
 
 
 def sanitize_filename(s):
@@ -65,67 +57,6 @@ def _json_default(obj):
     return '__pyobject__'
 
 
-def _states_validate(states):
-    # Shallow copy and set name field
-    d = {}
-    for name, s in states.items():
-        s = dict(s)
-        s['name'] = name
-        d[name] = s
-    return d
-
-
-def _test_validate(test):
-    if test is None:
-        return None
-    t = dict(test)
-    fn = t['fn']
-    if isinstance(fn, str):
-        parts = fn.split('.')
-        fn_name = parts[-1]
-        module_name = '.'.join(parts[:-1])
-        module = importlib.import_module(module_name)
-        fn = getattr(module, fn_name)
-        t['fn'] = fn
-
-    t.setdefault('name', getattr(fn, 'NAME', getattr(fn, '__name__', '__unknown__')))
-    t.setdefault('config', {})
-    if 'devices' not in t:
-        t['devices'] = getattr(fn, 'DEVICES', [])
-    return t
-
-
-def _tests_validate(test_list):
-    d = []
-    for t in test_list:
-        d.append(_test_validate(t))
-    return d
-
-
-def _devices_validate(devices_list):
-    """Convert self._station['devices'] from list of defs to dict name:def."""
-    devices_map = {}
-    for d in devices_list:
-        d = dict(d)
-        clz = d['clz']
-        if 'name' in d:
-            name = d['name']
-        elif hasattr(clz, 'NAME'):
-            name = clz.NAME
-        else:
-            name = clz.__name__
-        d['name'] = name
-        d.setdefault('lifecycle', 'station')
-        d.setdefault('config', {})
-        if d['lifecycle'] not in _DEVICE_LIFECYCLE:
-            raise RuntimeError(f'invalid device lifecycle {d["lifecycle"]} for {name}')
-
-        if name in devices_map:
-            raise RuntimeError('Duplicate device name: %s', name)
-        devices_map[name] = d
-    return devices_map
-
-
 class DictReadOnlyWrapper(collections.Mapping):
 
     def __init__(self, data):
@@ -144,7 +75,8 @@ class DictReadOnlyWrapper(collections.Mapping):
 class Context:
     """Context for a test station.
 
-    :param station: The Station definition.
+    :param station: The Station definition, which should already be validated
+        using pytation.loader.validate.
     :ivar env: The environment, which is initialized when the station starts.
         The suite and tests may modify the environment to convey information,
         but the environment is reinitialized to the station defaults at the
@@ -156,11 +88,8 @@ class Context:
         self._log = logging.getLogger('pytation')
         self._log.setLevel(logging.DEBUG)
         self._env = {}  # cache station init to restore after each suite
-        self.env: dict[str: object] = {
-            'error_count_to_halt': 1,
-        }
-        self._station = {}
-        self._station_validate(station)
+        self.env: dict[str: object] = station['env']
+        self._station = station
 
         self._progress: Progress = None
         self._devices: dict[str, object] = {}  #: string to device object
@@ -230,45 +159,6 @@ class Context:
             logging.getLogger().removeHandler(self._station_log_handler)
             self._station_log_handler.close()
             self._station_log_handler = None
-
-    def _station_validate(self, station):
-        self._station = {}
-        self._station['name'] = station['name']
-        self._station['full_name'] = station.get('full_name', station['name'])
-
-        # Construct the environment
-        station_start_time = time.now()
-        self.env_exclude = ['error_count', 'suite_timestamp', 'suite_timestr', 'suite_isostr']
-        env_no_override = {
-            'station': station['name'],
-            'process_id': os.getpid(),
-            'error_count': 0,
-
-            'station_timestamp': station_start_time,
-            'station_timestr': time.time_to_filename(station_start_time),
-            'station_isostr': time.time_to_isostr(station_start_time),
-
-            # updated at the start of each suite
-            'suite_timestamp': 0,
-            'suite_timestr': time.time_to_filename(0),
-            'suite_isostr': time.time_to_isostr(0),
-        }
-        self.env.update(station.get('env', {}))
-        self.env.update(env_no_override)
-
-        # Construct the station
-        paths = station.get('paths', {})
-        paths.setdefault('base_path', os.path.join(os.path.expanduser('~'), 'pytation'))
-        paths.setdefault('log', _LOG_PATH_DEFAULT)
-        paths.setdefault('output', _OUTPUT_PATH_DEFAULT)
-        paths.setdefault('progress', _PROGRESS_PATH_DEFAULT)
-        self._station['paths'] = paths
-        self._station['states'] = _states_validate(station.get('states', {}))
-        self._station['tests'] = _tests_validate(station['tests'])
-        self._station['devices'] = _devices_validate(station['devices'])
-        for k in SETUP_TEARDOWN_FN:
-            self._station[k] = _test_validate(station.get(k, None))
-        self._station['gui_resources'] = station.get('gui_resources', [])
 
     def path(self, key):
         value = self._station['paths'][key]
@@ -452,7 +342,7 @@ class Context:
         self._fs = WriteZipFS(file=path,
                               compression=zipfile.ZIP_STORED,
                               temp_fs='temp://pytation')
-        self._station['env'] = dict([(key, value) for key, value in self.env.items() if key not in self.env_exclude])
+        self._station['env'] = dict([(key, value) for key, value in self.env.items() if key not in ENV_EXCLUDE])
         with self._fs.open('station.json', 'wt') as f:
             json.dump(self._station, f, indent=2, default=_json_default)
         self._station['env'] = {}

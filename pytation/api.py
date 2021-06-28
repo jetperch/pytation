@@ -23,7 +23,7 @@ def declare_test(devices: list[str] = None):
 
     :param devices: The list of expected devices, using the same
         device names used in the station definition.
-    :return: The decorated test function.
+    :return: The decorated test function(context, config).
     """
     def decorator_repeat(func):
         if devices:
