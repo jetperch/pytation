@@ -12,11 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 from pytation import loader
 from pytation import gui_runner
-
-log = logging.getLogger(__name__)
 
 
 def parser_config(p):

@@ -4,12 +4,13 @@
 This file contains the list of changes made to pytation.
 
 
-## 0.0.3
+## 0.1.0
 
 2021 June 28
 
 *   Refactored and improved station validate.
 *   Added test "--include" and "--exclude" command-line options.
+*   Implemented command line interface (CLI) runner.
 
 
 ## 0.0.2

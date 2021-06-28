@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
-
-log = logging.getLogger(__name__)
+from pytation import loader
+from pytation import cli_runner
 
 
 def parser_config(p):
-    """Command line runner."""
-    p.add_argument('station',
-                   help='The fully-qualified station definition')
+    """Graphical user interface runner."""
+    loader.parser_config(p)
     return on_cmd
 
 
 def on_cmd(args):
-    return 0
+    station = loader.load(args)
+    obj = cli_runner.CliStation(station)
+    return obj.run()

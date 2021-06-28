@@ -22,9 +22,6 @@ import threading
 import logging
 
 
-log = logging.getLogger(__name__)
-FILE_FMT = "%(levelname)s:%(asctime)s:%(filename)s:%(lineno)d:%(name)s:%(message)s"
-
 LOG_COLOR = {
     logging.CRITICAL: QtGui.QColor(255, 0, 0),
     logging.ERROR: QtGui.QColor(128, 0, 0),
@@ -75,6 +72,7 @@ class StationObject:
     def __init__(self, parent, station):
         self._context = Context(station)
         self._parent = parent
+        self._log = logging.getLogger('station')
         self._context.callback_register('progress', self._on_progress_cbk)
         self._context.callback_register('state', self._on_state_cbk)
         self._context.callback_register('wait_for_user', self._on_wait_for_user_cbk)
@@ -110,9 +108,9 @@ class StationObject:
             sleep(0.05)
 
     def run(self):
-        log.info('Station thread starting')
+        self._log.info('Station thread starting')
         self._context.station_run()
-        log.info('Station thread stopping')
+        self._log.info('Station thread stopping')
 
     @QtCore.Slot()
     def quit_request(self):
@@ -235,7 +233,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self._image_label.setPixmap(pixmap_bin)
                 self._pixmap_bin = pixmap_bin
             except Exception:
-                log.warning('Could not load image')
+                self._log.warning('Could not load image')
         if style is not None:
             self._stage_text.setStyleSheet(style)
         if html is not None:
@@ -317,7 +315,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._logging_textEdit.append(txt)
 
     def closeEvent(self, event: QtGui.QCloseEvent):
-        log.info('MainWindow.closeEvent')
+        self._log.info('MainWindow.closeEvent')
         self._station_stop()
         event.accept()
 
@@ -329,6 +327,7 @@ def run(station):
     app = QtWidgets.QApplication(sys.argv)
 
     resources = []
+    log = logging.getLogger()
     for package, data in station['gui_resources']:
         b = pkgutil.get_data(package, data)
         log.info(f'resource {package} {data} => {len(b)} bytes')

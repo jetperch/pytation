@@ -1,6 +1,8 @@
 
 # Python Test Station
 
+[![Windows](https://github.com/jetperch/pytation/actions/workflows/windows.yml/badge.svg)](https://github.com/jetperch/pytation/actions/workflows/windows.yml)
+
 Welcome to the pytation project!  This test framework package allows you to 
 easily create tests for your custom hardware projects.  Although building
 manufacturing test stations is the primary goal of this project, you can
