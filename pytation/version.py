@@ -1,4 +1,4 @@
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __title__ = "pytation"
 __description__ = 'Create manufacturing and validation tests for hardware development.'

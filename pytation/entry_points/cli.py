@@ -19,10 +19,17 @@ from pytation import cli_runner
 def parser_config(p):
     """Graphical user interface runner."""
     loader.parser_config(p)
+    p.add_argument('--iterations',
+                   default=1,
+                   type=int,
+                   help='The number of iterations. 0=infinite')
     return on_cmd
 
 
 def on_cmd(args):
     station = loader.load(args)
     obj = cli_runner.CliStation(station)
-    return obj.run()
+    iterations = args.iterations
+    if iterations <= 0:
+        iterations = count
+    return obj.run(count=iterations)

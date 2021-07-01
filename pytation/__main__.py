@@ -35,7 +35,7 @@ _LOG_LEVELS = {
 }
 
 _EPILOG = f"""\
-Set the MFGR_TEST_LOG_LEVEL environment variable to change the logging level.
+Set the PYTATION_LOG_LEVEL environment variable to change the logging level.
 Options are [{', '.join(_LOG_LEVELS.keys())}].
 The default is INFO.
 """
@@ -43,7 +43,7 @@ The default is INFO.
 
 def get_parser():
     parser = argparse.ArgumentParser(
-        description='hwtest',
+        description='pytation',
         epilog=_EPILOG,
     )
     subparsers = parser.add_subparsers(
@@ -70,7 +70,7 @@ def get_parser():
 
 
 def run():
-    log_level = os.environ.get('MFGR_TEST_LOG_LEVEL', 'INFO').upper()
+    log_level = os.environ.get('PYTATION_LOG_LEVEL', 'INFO').upper()
     log_level = _LOG_LEVELS.get(log_level, logging.INFO)
     logging.basicConfig(level=log_level,
                         format="%(levelname)s:%(asctime)s:%(filename)s:%(lineno)d:%(name)s:%(message)s")

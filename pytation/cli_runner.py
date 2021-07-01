@@ -73,6 +73,6 @@ class CliStation:
     def _on_prompt_cbk(self, prompt_str):
         return input(prompt_str + '> ')
 
-    def run(self):
-        self._context.station_run()
+    def run(self, count=None):
+        self._context.station_run(count=count)
         return 0

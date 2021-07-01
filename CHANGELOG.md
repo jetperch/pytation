@@ -4,6 +4,15 @@
 This file contains the list of changes made to pytation.
 
 
+## 0.1.1
+
+2021 Jul 1
+
+*   Improved CLI to only run one iteration by default.
+*   Fixed main description and logging environment variable.
+*   Fixed pytation console_script.
+
+
 ## 0.1.0
 
 2021 June 28
