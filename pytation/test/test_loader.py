@@ -148,3 +148,11 @@ class TestValidator(unittest.TestCase):
         station = loader.validate(station)
         names = [d['name'] for d in station['devices'].values()]
         self.assertEqual(['dut', 'dut2', 'DutEmpty'], names)
+
+    def test_module_name_as_test(self):
+        station = {
+            'name': 'station1',
+            'tests': [{'fn': 'pytation.test.tmodule'}],
+            'devices': [],
+        }
+        station = loader.validate(station)

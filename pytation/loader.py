@@ -71,15 +71,19 @@ def _test_validate(test):
         return None
     t = dict(test)
     fn = t['fn']
+    fn_str = '__unknown__'
     if isinstance(fn, str):
-        parts = fn.split('.')
-        fn_name = parts[-1]
-        module_name = '.'.join(parts[:-1])
-        module = importlib.import_module(module_name)
-        fn = getattr(module, fn_name)
+        fn_str = fn
+        try:
+            fn = importlib.import_module(fn)
+        except ModuleNotFoundError:
+            parts = fn.split('.')
+            fn_name = parts[-1]
+            module_name = '.'.join(parts[:-1])
+            module = importlib.import_module(module_name)
+            fn = getattr(module, fn_name)
         t['fn'] = fn
-
-    t.setdefault('name', getattr(fn, 'NAME', getattr(fn, '__name__', '__unknown__')))
+    t.setdefault('name', getattr(fn, 'NAME', getattr(fn, '__name__', fn_str)))
     t.setdefault('config', {})
     if 'devices' not in t:
         t['devices'] = getattr(fn, 'DEVICES', [])

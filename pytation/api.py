@@ -1,4 +1,4 @@
-# Copyright 2021 Jetperch LLC
+# Copyright 2021-2022 Jetperch LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,6 +30,30 @@ def declare_test(devices: list[str] = None):
             func.DEVICES = devices
         return func
     return decorator_repeat
+
+
+def test_prototype(context: Context, config: dict[str, object]):
+    """The prototype for a test function.
+
+    :param context: The pytation test station context.
+    :param config: Optional test configuration options.
+    :return: One of the following:
+        * None: test passed
+        * result: integer return code with 0=success, 1=fail
+        * result, details: The integer return code along with a dict
+          of support details that will be logged.  The details are
+          also added to the context.
+
+    A module with a "run" function that conforms to this prototype
+    may also be used as a test.  The module may also provide an
+    "analyze(context)" function for use with the analyze entry point.
+    """
+    return 0, {}
+    result = fn(self, config)
+    if result is None:
+        result = 0
+    elif not isinstance(result, int):
+        result, detail = result
 
 
 class Device:

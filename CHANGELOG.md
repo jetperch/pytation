@@ -4,6 +4,16 @@
 This file contains the list of changes made to pytation.
 
 
+## 0.1.2
+
+2022 Feb 4
+
+* Added API documentation for a test.
+* Added support for modules with "run" function as tests.
+* Added analyze entry point.
+* Added missing "fs" dependency in setup.py.
+
+
 ## 0.1.1
 
 2021 Jul 1

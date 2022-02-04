@@ -216,6 +216,7 @@ class Context:
         :param d: The test configuration.  The following keys are used:
             - name: The name used by the suite to save data (optional)
             - fn: The test function required.
+            - skip: Boolean True skips this test.
             - config: The config dict to pass to fn (optional)
         :return: 0 on success or error code.
         """
@@ -229,11 +230,18 @@ class Context:
         elif hasattr(fn, 'NAME'):
             name = fn.NAME
         else:
-            name = fn.__name__
+            name = fn.__name__.split('.')[-1]
         d['name'] = name
         config = d.get('config', {})
         fname = sanitize_filename(name)
+        if d.get('skip'):
+            self._log.info('--- TEST START %s --- ', name)
+            self._log.info('--- TEST SKIP %s --- ', name)
+            self._log.info('--- TEST DONE %s with status 0 --- ', name)
+            return
+
         self._log.info('--- TEST START %s --- ', name)
+        test = {'name': name, 'config': config}
 
         try:
             self._devices_open('test', d['devices'])
@@ -246,6 +254,8 @@ class Context:
                     raise RuntimeError(f'required device {d} not found')
 
             with self.section(name):
+                if not callable(fn) and hasattr(fn, 'run'):
+                    fn = fn.run
                 result = fn(self, config)
                 if result is None:
                     result = 0
@@ -256,11 +266,8 @@ class Context:
         finally:
             self._devices_close('test')
             self._log.info('--- TEST DONE %s with status %s --- ', name, result)
-            test = {
-                'name': name,
-                'result': result,
-                'detail': detail
-            }
+            test['result'] = result
+            test['detail'] = detail
             self._tests.append(test)
 
         for device_name, device in self._devices.items():
