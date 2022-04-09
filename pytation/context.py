@@ -95,6 +95,7 @@ class Context:
         self._devices: dict[str, object] = {}  #: string to device object
         self.devices: dict[str, object] = DictReadOnlyWrapper(self._devices)  #: dict[str, object]
         self._fs = None
+        self._fs_path = None
         self._cbk = {'progress': [], 'state': [], 'wait_for_user': [], 'prompt': []}
         self._progress_data = []
         self._progress_file = None
@@ -349,6 +350,7 @@ class Context:
         self._fs = WriteZipFS(file=path,
                               compression=zipfile.ZIP_STORED,
                               temp_fs='temp://pytation')
+        self._fs_path = path
         self._station['env'] = dict([(key, value) for key, value in self.env.items() if key not in ENV_EXCLUDE])
         with self._fs.open('station.json', 'wt') as f:
             json.dump(self._station, f, indent=2, default=_json_default)
@@ -404,9 +406,10 @@ class Context:
             self._suite_logfile.close()
             self._suite_logfile = None
 
-        self._log.info('Writing zip file (may take a while)')
+        self._log.info('Writing zip file (may take a while): %s', self._fs_path)
         self._fs.close()
         self._fs = None
+        self._fs_path = None
 
     def suite_run(self):
         rc = self._suite_start()
