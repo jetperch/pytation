@@ -91,6 +91,7 @@ class Device:
         """Open and initialize the device.
 
         :param context: The test station context.
+        :raise Exception: on any error.
         """
         raise NotImplementedError("Device.setup")
 

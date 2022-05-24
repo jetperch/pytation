@@ -187,8 +187,13 @@ class Context:
         else:
             raise RuntimeError(f'Invalid device clz for {name}')
         self.config = deepcopy(d['config'])
-        device.setup(self)
-        self.config = None
+        try:
+            device.setup(self)
+        except Exception:
+            self._log.error(f'Could not open device {name}')
+            raise
+        finally:
+            self.config = None
         self._devices[name] = device
         return device
 
@@ -199,10 +204,7 @@ class Context:
         except KeyError:
             self._log.warning('device_close(%s), but not found', name)
             return
-        try:
-            device.teardown()
-        except Exception:
-            self._log.exception('device_close(%s)', name)
+        device.teardown()
 
     def _devices_open(self, lifecycle, device_list=None):
         if device_list is None:
@@ -216,7 +218,13 @@ class Context:
     def _devices_close(self, lifecycle):
         for name, d in self._station['devices'].items():
             if d['lifecycle'] == lifecycle and name in self._devices:
-                self.device_close(name)
+                try:
+                    self.device_close(name)
+                except Exception:
+                    self._log.exception('device_close(%s)', name)
+                    # no graceful way to handle this, keep going and close all devices
+                    # if problem persists, the _devices_open will likely fail and exit
+
 
     def test_run(self, d):
         """Run a test.
@@ -316,7 +324,12 @@ class Context:
         """
         self._station_log_open()
         self._log.info('pytation version = %s', __version__)
-        self._devices_open('station', True)
+        try:
+            self._devices_open('station', True)
+        except Exception:
+            self._log.error('Could not open all devices')
+            self._devices_close('station')
+            raise
         self.test_run(self._station.get('station_setup'))
         self._env = deepcopy(self.env)
 

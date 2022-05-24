@@ -12,6 +12,7 @@ This file contains the list of changes made to pytation.
 * Moved config['fs'] to context.fs.
 * Added AnalysisContext (not just python dict) and improved analysis runner.
 * Added pretty_json.
+* Improved error handling on device open and GUI exit.
 
 
 ## 0.1.2
