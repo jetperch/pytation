@@ -96,6 +96,7 @@ class Context:
         self.devices: dict[str, object] = DictReadOnlyWrapper(self._devices)  #: dict[str, object]
         self._fs = None
         self._fs_path = None
+        self.fs = None  #: The filesystem for use by the test
         self._cbk = {'progress': [], 'state': [], 'wait_for_user': [], 'prompt': []}
         self._progress_data = []
         self._progress_file = None
@@ -248,7 +249,7 @@ class Context:
             self._devices_open('test', d['devices'])
 
             if self._fs is not None and name not in SETUP_TEARDOWN_FN:
-                config['fs'] = self._fs.makedir(fname)
+                self.fs = self._fs.makedir(fname)
 
             for d in d['devices']:
                 if d not in self._devices:
@@ -270,6 +271,7 @@ class Context:
             test['result'] = result
             test['detail'] = detail
             self._tests.append(test)
+            self.fs = None
 
         for device_name, device in self._devices.items():
             try:
