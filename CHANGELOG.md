@@ -4,6 +4,16 @@
 This file contains the list of changes made to pytation.
 
 
+## 0.2.0
+
+2022 May 24  [in progress]
+
+* Combined "config" into "context" as context.config.
+* Moved config['fs'] to context.fs.
+* Added AnalysisContext (not just python dict) and improved analysis runner.
+* Added pretty_json.
+
+
 ## 0.1.2
 
 2022 Feb 4

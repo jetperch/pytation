@@ -26,7 +26,7 @@ class Eq1:
     def __init__(self):
         self._log = logging.getLogger(__name__ + '.Eq1')
 
-    def setup(self, context: Context, config=None):
+    def setup(self, context: Context):
         self._log.info('setup')
 
     def restore(self):
@@ -42,7 +42,7 @@ class Dut1:
     def __init__(self):
         self._log = logging.getLogger(__name__ + '.Dut1')
 
-    def setup(self, context: Context, config=None):
+    def setup(self, context: Context):
         self._log.info('setup')
 
     def restore(self):
@@ -52,13 +52,13 @@ class Dut1:
         self._log.info('teardown')
 
 
-def suite_setup(context, config=None):
+def suite_setup(context):
     context.state = 'wait_for_dut'
     context.wait_for_user()
     context.state = 'in_progress'
 
 
-def suite_teardown(context, config=None):
+def suite_teardown(context):
     if context.result == 0:
         context.state = 'pass'
     else:
@@ -66,15 +66,15 @@ def suite_teardown(context, config=None):
     context.wait_for_user()
 
 
-def enter_serial_number(context, config=None):
+def enter_serial_number(context):
     serial_number = context.prompt('Enter serial number')
     context.env['name'] = serial_number
     context.env['serial_number'] = serial_number
     return 0, {'serial_number': serial_number}
 
 
-def test1(context, config=None):
-    config = {} if config is None else config
+def test1(context):
+    config = context.config
     _log = logging.getLogger(__name__ + '.test1')
     mode = config.get('mode', 'normal')
     delay = float(config.get('delay', 0.01))

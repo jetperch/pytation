@@ -27,16 +27,16 @@ def needs_eq2(context, config):
     return 0
 
 
-def call_wait_for_user(context, config):
+def call_wait_for_user(context):
     context.wait_for_user()
 
 
-def call_prompt(context, config):
+def call_prompt(context):
     s = context.prompt('Hello?')
     return 0, {'user_data': s}
 
 
-def state_in_progress(context, config):
+def state_in_progress(context):
     context.state = 'in_progress'
 
 

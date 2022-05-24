@@ -20,11 +20,12 @@ Handle test context.
 from pytation import time, __version__
 from pytation.progress import Progress
 from pytation.loader import SETUP_TEARDOWN_FN, ENV_EXCLUDE
+from pytation import pretty_json
 from fs.zipfs import WriteZipFS
+from copy import deepcopy
 import collections
 import importlib
 import zipfile
-import json
 import os
 import logging
 
@@ -53,10 +54,6 @@ def _time_finalize(d):
     return d
 
 
-def _json_default(obj):
-    return '__pyobject__'
-
-
 class DictReadOnlyWrapper(collections.Mapping):
 
     def __init__(self, data):
@@ -73,7 +70,7 @@ class DictReadOnlyWrapper(collections.Mapping):
 
 
 class Context:
-    """Context for a test station.
+    """Context for a test station that is provided to each test step.
 
     :param station: The Station definition, which should already be validated
         using pytation.loader.validate.
@@ -88,12 +85,13 @@ class Context:
         self._log = logging.getLogger('pytation')
         self._log.setLevel(logging.DEBUG)
         self._env = {}  # cache station init to restore after each suite
-        self.env: dict[str: object] = station['env']
+        self.env: dict[str: object] = station['env']  #: The station environment
         self._station = station
 
         self._progress: Progress = None
         self._devices: dict[str, object] = {}  #: string to device object
         self.devices: dict[str, object] = DictReadOnlyWrapper(self._devices)  #: dict[str, object]
+        self.config = dict[str, object]  #: The test configuration, populated before each test and saved after each test.
         self._fs = None
         self._fs_path = None
         self.fs = None  #: The filesystem for use by the test
@@ -163,6 +161,12 @@ class Context:
             self._station_log_handler = None
 
     def path(self, key):
+        """Get the path from the station specification.
+
+        :param key: The path key from the the station specification.
+        :return: The path.
+        :raises KeyError: if key was not in the specification
+        """
         value = self._station['paths'][key]
         return value.format(**self._station['paths'], **self.env)
 
@@ -182,7 +186,9 @@ class Context:
             device = clz
         else:
             raise RuntimeError(f'Invalid device clz for {name}')
-        device.setup(self, d['config'])
+        self.config = deepcopy(d['config'])
+        device.setup(self)
+        self.config = None
         self._devices[name] = device
         return device
 
@@ -235,6 +241,7 @@ class Context:
             name = fn.__name__.split('.')[-1]
         d['name'] = name
         config = d.get('config', {})
+        config = deepcopy(config)
         fname = sanitize_filename(name)
         if d.get('skip'):
             self._log.info('--- TEST START %s --- ', name)
@@ -244,6 +251,7 @@ class Context:
 
         self._log.info('--- TEST START %s --- ', name)
         test = {'name': name, 'config': config}
+        self.config = config
 
         try:
             self._devices_open('test', d['devices'])
@@ -258,7 +266,7 @@ class Context:
             with self.section(name):
                 if not callable(fn) and hasattr(fn, 'run'):
                     fn = fn.run
-                result = fn(self, config)
+                result = fn(self)
                 if result is None:
                     result = 0
                 elif not isinstance(result, int):
@@ -270,8 +278,10 @@ class Context:
             self._log.info('--- TEST DONE %s with status %s --- ', name, result)
             test['result'] = result
             test['detail'] = detail
+            test['config'] = config
             self._tests.append(test)
             self.fs = None
+            self.config = None
 
         for device_name, device in self._devices.items():
             try:
@@ -308,7 +318,7 @@ class Context:
         self._log.info('pytation version = %s', __version__)
         self._devices_open('station', True)
         self.test_run(self._station.get('station_setup'))
-        self._env = dict(self.env)
+        self._env = deepcopy(self.env)
 
     def station_stop(self):
         """Stop the test station.
@@ -355,7 +365,7 @@ class Context:
         self._fs_path = path
         self._station['env'] = dict([(key, value) for key, value in self.env.items() if key not in ENV_EXCLUDE])
         with self._fs.open('station.json', 'wt') as f:
-            json.dump(self._station, f, indent=2, default=_json_default)
+            pretty_json.dump(self._station, f)
         self._station['env'] = {}
 
         # configure logging to ZIP file
@@ -399,7 +409,7 @@ class Context:
         self.test_run(self._station.get('suite_teardown'))
         self._log.info('*** %s ***', 'FAIL' if self.result else 'PASS')
         with self._fs.open('tests.json', 'wt') as f:
-            json.dump(self._tests, f, indent=2, default=_json_default)
+            pretty_json.dump(self._tests, f)
         if self._suite_log_file_handler:
             logging.getLogger().removeHandler(self._suite_log_file_handler)
             self._suite_log_file_handler.close()
@@ -472,6 +482,10 @@ class Context:
 
     @property
     def section_name(self):
+        """Get the current section name.
+
+        :return: The current section name.
+        """
         return '.'.join([x[0] for x in self._sections])
 
     def section_enter(self, name):
@@ -489,6 +503,12 @@ class Context:
         self.progress('__enter__')
 
     def section_exit(self, name=None):
+        """Exit a text section.
+
+        :param name: The optional name that will be matched against
+            the expected exit.
+        :raise RuntimeError: If name does not match.
+        """
         self.progress('__exit__')
         if not len(self._sections):
             raise RuntimeError('section_stop with no section')
@@ -533,6 +553,7 @@ class Context:
                 self._progress_update(progress_total)
 
     def wait_for_user(self):
+        """Wait for the user to perform an action."""
         self.progress('__wait_enter__ wait_for_user')
         try:
             for fn in self._cbk['wait_for_user']:
@@ -543,9 +564,14 @@ class Context:
             self.progress('__wait_exit__ wait_for_user')
 
     def prompt(self, prompt_str):
+        """Prompt the user for input.
+
+        :param prompt_str: The message to display to the user.
+        :return: The value entered by the user.
+        """
         prompt_str = str(prompt_str)
         p = f'prompt({prompt_str})'
-        self.progress('__wait_enter__ ' + p)
+        self.progress('__prompt_enter__ ' + p)
         try:
             while True:
                 for fn in self._cbk['prompt']:
@@ -556,13 +582,13 @@ class Context:
                         self._log.info('prompt(%s) -> %s', prompt_str, result_str)
                         return result_str
         finally:
-            self.progress('__wait_exit__ ' + p)
+            self.progress('__prompt_exit__ ' + p)
 
     def callback_register(self, name, cbk):
         """Register a function to call on an event.
 
         :param name: The callback type name, which is one of:
-            [progress, state, wait_for_user]
+            [progress, state, wait_for_user, prompt]
         :param cbk: The function to call as needed.  The exact function
             prototype depends upon the name:
 

@@ -13,18 +13,17 @@
 # limitations under the License.
 
 
-from fs.zipfs import ReadZipFS
+from pytation.analysis import AnalysisContext
 import glob
-import importlib
-import json
 import os
+
 
 
 def parser_config(p):
     """Analyze results from a suite.
 
     The analysis only works with tests specified as modules.  The module
-    must contain a "analyze(context)" function.
+    must contain a "analyze(context, config, return_code, result)" function.
     """
     p.add_argument('--test', '-t',
                    action='append',
@@ -38,33 +37,18 @@ def parser_config(p):
 def on_cmd(args):
     path = args.path
     if not os.path.isfile(path):
-        p = os.path.join(os.path.expanduser('~'), 'pytation', path, 'data', '*.zip')
-        files = glob.glob(p)
-        path = max(files, key=os.path.getmtime)
-        print(path)
+        print(f'File not found: {path}')
+        path = os.path.dirname(path)
+        if os.path.isdir(path):
+            p = os.path.join(path, '*.zip')
+            files = glob.glob(p)
+        else:
+            p = os.path.join(os.path.expanduser('~'), 'pytation')
+            files = glob.glob(p)
+        available = max(files, key=os.path.getmtime)
+        print('Available files:')
+        print(available)
+        return 1
 
-    fs = ReadZipFS(file=path)
-    with fs.open('tests.json', 'r') as f:
-        tests = json.load(f)
-
-    names = [t['name'] for t in tests]
-    if args.test is not None:
-        for t in args.test:
-            if t not in names:
-                print(f'Test {t} not found')
-                print('\nAvailable tests:')
-                print('\n'.join(names))
-                return 1
-
-    for t in tests:
-        if args.test is not None and t['name'] not in args.test:
-            continue
-        try:
-            m = importlib.import_module(t['name'])
-        except ModuleNotFoundError:
-            continue
-        if not hasattr(m, 'analyze'):
-            continue
-        t['fs']  = fs.opendir(t['name'])
-        print(f'\n### {t["name"]} ###')
-        m.analyze(t)
+    context = AnalysisContext(path)
+    return context.run(args.test)
