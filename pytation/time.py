@@ -28,16 +28,25 @@ def time_to_filename(t=None):
     if t is None:
         t = now()
     dt = datetime.datetime.utcfromtimestamp(t)
-    return dt.strftime('%Y%m%d_%H%M%S')
+    return dt.strftime('%Y%m%d_%H%M%S_%f')
+
+
+def filename_to_time(s):
+    s = s + '+00:00'
+    dt = datetime.datetime.strptime(s, '%Y%m%d_%H%M%S_%f%z')
+    return dt.timestamp()
 
 
 def time_to_isostr(t=None):
     if t is None:
         t = now()
     dt = datetime.datetime.utcfromtimestamp(t)
-    return dt.isoformat()
+    dt = dt.isoformat() + 'Z'
+    return dt
 
 
 def isostr_to_time(s):
+    if s[-1] == 'Z':
+        s = s[:-1] + '+00:00'
     dt = datetime.datetime.fromisoformat(s)
     return dt.timestamp()
