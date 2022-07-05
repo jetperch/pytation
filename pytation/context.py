@@ -23,7 +23,7 @@ from pytation.loader import SETUP_TEARDOWN_FN, ENV_EXCLUDE
 from pytation import pretty_json
 from fs.zipfs import WriteZipFS
 from copy import deepcopy
-import collections
+from collections.abc import Mapping
 import importlib
 import zipfile
 import os
@@ -54,7 +54,7 @@ def _time_finalize(d):
     return d
 
 
-class DictReadOnlyWrapper(collections.Mapping):
+class DictReadOnlyWrapper(Mapping):
 
     def __init__(self, data):
         self._data = data
