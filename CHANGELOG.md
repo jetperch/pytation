@@ -6,13 +6,14 @@ This file contains the list of changes made to pytation.
 
 ## 0.2.0
 
-2022 May 24  [in progress]
+2022 Jul 15
 
 * Combined "config" into "context" as context.config.
 * Moved config['fs'] to context.fs.
 * Added AnalysisContext (not just python dict) and improved analysis runner.
 * Added pretty_json.
 * Improved error handling on device open and GUI exit.
+* Changed from deprecated collections.Mapping to from collections.abc.Mapping.
 
 
 ## 0.1.2
