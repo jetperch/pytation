@@ -91,7 +91,7 @@ class Context:
         self._progress: Progress = None
         self._devices: dict[str, object] = {}  #: string to device object
         self.devices: dict[str, object] = DictReadOnlyWrapper(self._devices)  #: dict[str, object]
-        self.config = dict[str, object]  #: The test configuration, populated before each test and saved after each test.
+        self.config: dict[str, object] = {}  #: The test configuration, populated before each test and saved after each test.
         self._fs = None
         self._fs_path = None
         self.fs = None  #: The filesystem for use by the test
@@ -186,14 +186,14 @@ class Context:
             device = clz
         else:
             raise RuntimeError(f'Invalid device clz for {name}')
-        self.config = deepcopy(d['config'])
+        self.config, config = deepcopy(d['config']), self.config
         try:
             device.setup(self)
         except Exception:
             self._log.error(f'Could not open device {name}')
             raise
         finally:
-            self.config = None
+            self.config = config
         self._devices[name] = device
         return device
 
