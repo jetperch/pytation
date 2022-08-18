@@ -61,6 +61,7 @@ def parse(txt):
     lines = parse_lines(txt)
     tbl = {}
     time_end = lines[-1][0]
+    time_end = max(time_end, 1e-15) # avoid division by zero
     for idx in range(len(lines)):
         t, identifier, value = lines[idx]
         tbl['%s.%s' % (identifier, value)] = t / time_end
