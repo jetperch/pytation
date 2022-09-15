@@ -4,6 +4,13 @@
 This file contains the list of changes made to pytation.
 
 
+## 0.2.1
+
+2022 Sep 15
+
+* Fixed tests.json not being cleared on successive tests.
+
+
 ## 0.2.0
 
 2022 Jul 15

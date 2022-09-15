@@ -225,7 +225,6 @@ class Context:
                     # no graceful way to handle this, keep going and close all devices
                     # if problem persists, the _devices_open will likely fail and exit
 
-
     def test_run(self, d):
         """Run a test.
 
@@ -435,6 +434,8 @@ class Context:
         self._fs.close()
         self._fs = None
         self._fs_path = None
+        self._tests.clear()
+        self._sections.clear()
 
     def suite_run(self):
         rc = self._suite_start()
