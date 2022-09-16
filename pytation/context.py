@@ -390,6 +390,8 @@ class Context:
         self._suite_log_file_handler = ch
 
     def _suite_start(self):
+        self._tests.clear()
+        self._sections.clear()
         self.env = dict(self._env)  # restore environment
         self._progress_update(0.0)
         rc = self.test_run(self._station.get('suite_setup'))  # exclude from "progress" and logging
@@ -434,8 +436,6 @@ class Context:
         self._fs.close()
         self._fs = None
         self._fs_path = None
-        self._tests.clear()
-        self._sections.clear()
 
     def suite_run(self):
         rc = self._suite_start()
@@ -457,7 +457,10 @@ class Context:
                         break
         finally:
             self._suite_stop()
-        return self.result
+        result = self.result
+        self._tests.clear()
+        self._sections.clear()
+        return result
 
     @property
     def result(self):
