@@ -10,6 +10,7 @@ This file contains the list of changes made to pytation.
 
 * Added "handlers".
 * Added support for "qt_keypress" handler.
+* Added PYTATION_RETURN_CODE_SKIP_REMAINING_TESTS feature.
 
 
 ## 0.2.1

@@ -20,6 +20,7 @@ Handle test context.
 from pytation import time, __version__
 from pytation.progress import Progress
 from pytation.loader import SETUP_TEARDOWN_FN, ENV_EXCLUDE
+from pytation.keywords import *
 from pytation import pretty_json
 from fs.zipfs import WriteZipFS
 from copy import deepcopy
@@ -291,7 +292,11 @@ class Context:
         finally:
             self._devices_close('test')
             self._log.info('--- TEST DONE %s with status %s --- ', name, result)
-            test['result'] = result
+            if result in [PYTATION_RETURN_CODE_SKIP_REMAINING_TESTS]:
+                test_result = 0
+            else:
+                test_result = result
+            test['result'] = test_result
             test['detail'] = detail
             test['config'] = config
             self._tests.append(test)
@@ -458,7 +463,9 @@ class Context:
                 self.test_run(self._station.get('test_setup'))
                 result = self.test_run(d)
                 self.test_run(self._station.get('test_teardown'))
-                if result:
+                if result == PYTATION_RETURN_CODE_SKIP_REMAINING_TESTS:
+                    break
+                elif result:
                     self.env['error_count'] += 1
                     if self.env['error_count'] >= self.env['error_count_to_halt']:
                         self._log.info('Halting due to %d errors', self.env['error_count'])
