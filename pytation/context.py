@@ -163,12 +163,20 @@ class Context:
     def path(self, key):
         """Get the path from the station specification.
 
-        :param key: The path key from the the station specification.
+        :param key: The path key from the station specification.
         :return: The path.
         :raises KeyError: if key was not in the specification
         """
         value = self._station['paths'][key]
         return value.format(**self._station['paths'], **self.env)
+
+    def handler(self, name):
+        """Get the callable handler from the station specification.
+
+        :param name: The handler name from the station specification.
+        :return: The callable handler or None.
+        """
+        return self._station.get('handlers', {}).get(name)
 
     def device_open(self, name):
         self._log.info('device_open(%s)', name)

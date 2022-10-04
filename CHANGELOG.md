@@ -4,6 +4,14 @@
 This file contains the list of changes made to pytation.
 
 
+## 0.2.2
+
+2022 Oct 4
+
+* Added "handlers".
+* Added support for "qt_keypress" handler.
+
+
 ## 0.2.1
 
 2022 Sep 15

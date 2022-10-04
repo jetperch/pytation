@@ -66,6 +66,14 @@ def _states_validate(states):
     return d
 
 
+def _fn_load(fn_str):
+    parts = fn_str.split('.')
+    fn_name = parts[-1]
+    module_name = '.'.join(parts[:-1])
+    module = importlib.import_module(module_name)
+    return getattr(module, fn_name)
+
+
 def _test_validate(test):
     if test is None:
         return None
@@ -77,11 +85,7 @@ def _test_validate(test):
         try:
             fn = importlib.import_module(fn)
         except ModuleNotFoundError:
-            parts = fn.split('.')
-            fn_name = parts[-1]
-            module_name = '.'.join(parts[:-1])
-            module = importlib.import_module(module_name)
-            fn = getattr(module, fn_name)
+            fn = _fn_load(fn_str)
         t['fn'] = fn
     t.setdefault('name', getattr(fn, 'NAME', getattr(fn, '__name__', fn_str)))
     t.setdefault('config', {})
@@ -127,6 +131,17 @@ def _devices_validate(devices_list):
     return devices_map
 
 
+def _handlers_validate(kwargs):
+    handlers_map = {}
+    for name, value in kwargs.items():
+        if isinstance(value, str):
+            value = _fn_load(value)
+        if not callable(value):
+            raise ValueError(f'Could not load handler {name}')
+        handlers_map[name] = value
+    return handlers_map
+
+
 def validate(station):
     """Validate the station and fully populate optional fields.
 
@@ -170,6 +185,7 @@ def validate(station):
     s['states'] = _states_validate(station.get('states', {}))
     s['tests'] = _tests_validate(station['tests'])
     s['devices'] = _devices_validate(station['devices'])
+    s['handlers'] = _handlers_validate(station.get('handlers', {}))
     for k in SETUP_TEARDOWN_FN:
         s[k] = _test_validate(station.get(k, None))
     s['gui_resources'] = station.get('gui_resources', [])

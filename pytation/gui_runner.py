@@ -107,6 +107,12 @@ class StationObject:
                 return self.prompt_result_str
             sleep(0.05)
 
+    def keyPressEvent(self, event: QtGui.QKeyEvent):
+        handler = self._context.handler('qt_keypress')
+        if handler is not None:
+            return handler(self._context, event)
+        return False
+
     def run(self):
         self._log.info('Station thread starting')
         self._context.station_run()
@@ -263,6 +269,8 @@ class MainWindow(QtWidgets.QMainWindow):
         key = event.key()
         if key in [QtCore.Qt.Key_Escape]:
             self.close()
+        elif self._station.keyPressEvent(event):
+            pass
         else:
             self._station.wait_for_user = True
         event.accept()
