@@ -4,6 +4,16 @@
 This file contains the list of changes made to pytation.
 
 
+## 0.2.3
+
+2022 Nov 4
+
+* Fixed pypiwin32 dependency -> pywin32.
+* Added sphinx documentation.
+* Added GitHub workflow to build documentation and publish to GitHub Pages.
+* Restructured example.
+
+
 ## 0.2.2
 
 2022 Oct 4

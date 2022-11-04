@@ -12,6 +12,9 @@ Brewfile.lock.json
 *.pyc
 *.pyd
 
+# Compiled Qt resource files
+*.rcc
+
 # Compiled Object files
 *.slo
 *.lo
@@ -44,4 +47,3 @@ Brewfile.lock.json
 # IDE files
 .idea
 .settings
-

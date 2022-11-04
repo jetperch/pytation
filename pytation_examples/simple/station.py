@@ -134,5 +134,5 @@ STATION = {
         {'name': 'eq1', 'clz': Eq1},
         {'name': 'dut', 'clz': Dut1, 'lifecycle': 'suite', 'config': {'mode': 'test'}},
     ],
-    'gui_resources': [['pytation_examples', 'pytation_examples.rcc']]  # list of [package, resource]
+    'gui_resources': [['station', 'station.rcc']]  # list of [package, resource]
 }
