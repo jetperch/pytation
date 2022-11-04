@@ -14,9 +14,9 @@ graphical PySide6 runner and command line runner.
 
 Project links:
 
-* Releases: `pypi <https://pypi.org/project/pytation/>`_
-* Source Code: `GitHub <https://github.com/jetperch/pytation>`_
-* Documentation: `GitHub Pages <https://jetperch.github.io/pytation/>`_
+* [Documentation](https://jetperch.github.io/pytation/) on GitHub Pages
+* [Releases](https://pypi.org/project/pytation/) on pypi
+* [Source Code](https://github.com/jetperch/pytation/) on GitHub
 
 
 ## Quick Start

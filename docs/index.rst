@@ -54,10 +54,9 @@ under the permissive :ref:`Apache 2.0 license <license>`.
 
 You can find this project on:
 
-* Releases: `pypi <https://pypi.org/project/pytation/>`_
-* Source Code: `GitHub <https://github.com/jetperch/pytation>`_
-* Documentation: `GitHub Pages <https://jetperch.github.io/pytation/>`_
-
+* `Documentation <https://jetperch.github.io/pytation/>`_ on GitHub Pages
+* `Releases <https://pypi.org/project/pytation/>`_ on pypi
+* `Source Code <https://github.com/jetperch/pytation>`_ on GitHub
 
 
 Terminology
