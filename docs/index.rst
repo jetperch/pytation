@@ -1,7 +1,11 @@
 .. Pytation documentation master file
 
 .. image:: https://github.com/jetperch/pytation/actions/workflows/windows.yml/badge.svg
-    :target: https://github.com/jetperch/pytation
+    :target: https://github.com/jetperch/pytation/actions/workflows/windows.yml
+
+.. image:: https://github.com/jetperch/pytation/actions/workflows/docs.yml/badge.svg
+    :target: https://github.com/jetperch/pytation/actions/workflows/docs.yml
+
 
 Pytation
 ========
@@ -52,7 +56,27 @@ You can find this project on:
 
 * Releases: `pypi <https://pypi.org/project/pytation/>`_
 * Source Code: `GitHub <https://github.com/jetperch/pytation>`_
-* Documentation: TBD
+* Documentation: `GitHub Pages <https://jetperch.github.io/pytation/>`_
+
+
+
+Terminology
+===========
+
+This project uses several terms that can vary between different testing
+frameworks.  This section defines the terms used throughout this project.
+
+* **Test**: A single step that produces a pass/fail result along with optional
+  detailed data.
+* **Suite**: A sequence of **Tests** performed in order.  The **suite** also
+  produces a pass/fail result.  If any **test** fails,
+  then the **suite** fails.
+* **Device**: An abstract definition for usually hardware instruments, sensors,
+  and the device under test that are used by the **tests** to produce stimulus
+  and measure results.
+* **Station**: The combination of **Devices** and a **Suite** of **Tests**.
+  For manufacturing test stations, the **station** often runs the **suite**
+  using the manufacturing GUI, once for each device under test.
 
 
 Table of Contents
