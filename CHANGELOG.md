@@ -4,6 +4,13 @@
 This file contains the list of changes made to pytation.
 
 
+## 0.2.4
+
+2022 Nov 30
+
+* Fixed dependencies for pip installation.
+
+
 ## 0.2.3
 
 2022 Nov 4

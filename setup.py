@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2018-2021 Jetperch LLC
+# Copyright 2018-2022 Jetperch LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,12 +44,6 @@ with open(VERSION_PATH, 'r', encoding='utf-8') as f:
 # Get the long description from the README file
 with open(os.path.join(MYPATH, 'README.md'), 'r', encoding='utf-8') as f:
     long_description = f.read()
-
-
-if sys.platform.startswith('win'):
-    PLATFORM_INSTALL_REQUIRES = ['pywin32>=223']
-else:
-    PLATFORM_INSTALL_REQUIRES = []
 
 
 def _version_get():
@@ -181,22 +175,13 @@ setuptools.setup(
     # See https://packaging.python.org/guides/distributing-packages-using-setuptools/#python-requires
     python_requires='~=3.9',
 
-    setup_requires=[
-        # https://developercommunity.visualstudio.com/content/problem/1207405/fmod-after-an-update-to-windows-2004-is-causing-a.html
-        'fs',
-        'wheel',
-    ],
-
     # See https://packaging.python.org/en/latest/requirements.html
     # https://numpy.org/neps/nep-0029-deprecation_policy.html
     install_requires=[
         'fs',
+        "pywin32; platform_system=='Windows'",
         'PySide6',
-    ] + PLATFORM_INSTALL_REQUIRES,
-
-    extras_require={
-        'dev': ['check-manifest', 'coverage', 'sphinx', 'myst-parser'],
-    },   
+    ],
 
     entry_points={
         'console_scripts': [
