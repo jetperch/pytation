@@ -63,7 +63,7 @@ class CliStation:
         pass
 
     def _on_state_cbk(self, state):
-        txt = state['html']
+        txt = state.get('html', '')
         print(f'State => {txt}')
 
     def _on_wait_for_user_cbk(self):

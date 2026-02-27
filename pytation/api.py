@@ -156,7 +156,7 @@ class Device:
         This function is called after each test to ensure that the
         next test starts from a known condition.
         """
-        raise NotImplementedError("Device.setup")
+        raise NotImplementedError("Device.restore")
 
     def teardown(self):
         """Finalize and close the device."""

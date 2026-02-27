@@ -31,5 +31,5 @@ def on_cmd(args):
     obj = cli_runner.CliStation(station)
     iterations = args.iterations
     if iterations <= 0:
-        iterations = count
+        iterations = None
     return obj.run(count=iterations)

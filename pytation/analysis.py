@@ -33,8 +33,8 @@ class AnalysisContext():
     """
 
     def __init__(self, path):
-        self.env: dict[str: object] = {}  #: The station environment
-        self.test_config: dict[str: object] = {}  #: The test configuration.
+        self.env: dict[str, object] = {}  #: The station environment
+        self.test_config: dict[str, object] = {}  #: The test configuration.
         self.result = None   # 0 or test error code
         self.details = None  # The arbitrary test details
         if not os.path.isfile(path):
@@ -65,7 +65,6 @@ class AnalysisContext():
                 missing = "\n  ".join(missing)
                 available = "\n  ".join(names)
                 msg = f'Tests not found:\n  {missing}\nTests available:\n  {available}\n'
-                print(msg)
                 raise KeyError(msg)
         else:
             tests = names

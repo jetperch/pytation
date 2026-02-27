@@ -43,8 +43,11 @@ def on_cmd(args):
             p = os.path.join(path, '*.zip')
             files = glob.glob(p)
         else:
-            p = os.path.join(os.path.expanduser('~'), 'pytation')
-            files = glob.glob(p)
+            p = os.path.join(os.path.expanduser('~'), 'pytation', '**', '*.zip')
+            files = glob.glob(p, recursive=True)
+        if not files:
+            print(f'No .zip result files found in {p}')
+            return 1
         available = max(files, key=os.path.getmtime)
         print('Available files:')
         print(available)

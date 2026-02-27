@@ -51,7 +51,7 @@ def parser_config(p: argparse.ArgumentParser, station=None):
         p.add_argument('station',
                        help='The fully-qualified station definition')
     p.add_argument('--exclude',
-                   help='The comma-separated list of tests to exlude.  Defaults to "".')
+                   help='The comma-separated list of tests to exclude.  Defaults to "".')
     p.add_argument('--include',
                    help='The comma-separated list of tests to include.  Defaults to all available tests.')
 
@@ -126,7 +126,7 @@ def _devices_validate(devices_list):
             raise ValueError(f'invalid device lifecycle {d["lifecycle"]} for {name}')
 
         if name in devices_map:
-            raise ValueError('Duplicate device name: %s', name)
+            raise ValueError(f'Duplicate device name: {name}')
         devices_map[name] = d
     return devices_map
 
