@@ -14,8 +14,78 @@
 
 """The API for packages using this manufacturing test framework."""
 
-from pytation.context import Context
+from typing import Protocol, runtime_checkable
+from collections.abc import Mapping
 from pytation.analysis import AnalysisContext
+
+
+@runtime_checkable
+class TestContext(Protocol):
+    """The interface available to test functions and device setup.
+
+    This Protocol defines the subset of :class:`pytation.context.Context`
+    that tests and devices should use.  The full Context object is passed
+    at runtime, but type-hinting with TestContext gives IDEs a focused
+    autocomplete list and lets type checkers warn against calling
+    orchestration internals.
+    """
+
+    env: dict[str, object]
+    """The station environment.  Tests may read and modify."""
+
+    config: dict[str, object]
+    """The test configuration, populated before each test."""
+
+    fs: object
+    """The filesystem instance for use by the test (None between tests)."""
+
+    devices: Mapping[str, object]
+    """Read-only mapping of device name to device object."""
+
+    @property
+    def state(self) -> str:
+        """The current state name."""
+        ...
+
+    @state.setter
+    def state(self, s: str) -> None: ...
+
+    @property
+    def result(self) -> int:
+        """The aggregate test result: 0 on success, error code on failure."""
+        ...
+
+    def expand_str(self, s: str) -> str:
+        """Expand a string substituting environment variables."""
+        ...
+
+    def path(self, key: str) -> str:
+        """Get a path from the station specification."""
+        ...
+
+    def section(self, name: str):
+        """Create a new test section as a context manager."""
+        ...
+
+    def section_enter(self, name: str) -> None:
+        """Enter a test section.  Call section_exit() when done."""
+        ...
+
+    def section_exit(self, name: str) -> None:
+        """Exit a test section."""
+        ...
+
+    def progress(self, progress) -> None:
+        """Signal a progress step (float 0.0-1.0 or string event name)."""
+        ...
+
+    def wait_for_user(self) -> None:
+        """Wait for the user to perform an action."""
+        ...
+
+    def prompt(self, prompt_str: str) -> str:
+        """Prompt the user for input and return their response."""
+        ...
 
 
 def declare_test(devices: list[str] = None):
@@ -32,26 +102,11 @@ def declare_test(devices: list[str] = None):
     return decorator_repeat
 
 
-def test_prototype(context: Context):
+def test_prototype(context: TestContext):
     """The prototype for a test function.
 
     :param context: The pytation test station context.
-        Interesting members include:
-            - state: The current state name, which must match a state in
-              the station configuration.
-            - env: The station environment.
-            - fs: The filesystem instance for use by the test.
-            - config: The dict[str, object] of test configuration options.
-              The test may modify this configuration in place, and the
-              station will store the modified version for future analysis.
-
-        Interesting methods include:
-            - expand_str
-            - path
-            - section, section_enter, section_exit
-            - progress
-            - wait_for_user
-            - prompt
+        See :class:`TestContext` for the available attributes and methods.
 
     :return: One of the following:
         * None: test passed
@@ -87,7 +142,7 @@ class Device:
     NAME = ''
     """The user-meaningful, descriptive test name"""
 
-    def setup(self, context: Context):
+    def setup(self, context: TestContext):
         """Open and initialize the device.
 
         :param context: The test station context.

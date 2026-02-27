@@ -27,7 +27,7 @@ def now():
 def time_to_filename(t=None):
     if t is None:
         t = now()
-    dt = datetime.datetime.utcfromtimestamp(t)
+    dt = datetime.datetime.fromtimestamp(t, datetime.UTC)
     return dt.strftime('%Y%m%d_%H%M%S_%f')
 
 
@@ -40,9 +40,8 @@ def filename_to_time(s):
 def time_to_isostr(t=None):
     if t is None:
         t = now()
-    dt = datetime.datetime.utcfromtimestamp(t)
-    dt = dt.isoformat() + 'Z'
-    return dt
+    dt = datetime.datetime.fromtimestamp(t, datetime.UTC)
+    return dt.isoformat()
 
 
 def isostr_to_time(s):

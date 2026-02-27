@@ -29,6 +29,7 @@ import importlib
 import zipfile
 import os
 import logging
+from time import sleep
 
 
 _FILE_FMT = "%(levelname)s:%(asctime)s:%(filename)s:%(lineno)d:%(name)s:%(message)s"
@@ -96,7 +97,7 @@ class Context:
         self._tests = []     # The list of test outputs
         self._sections = []  # list of [name, start_time]
         self._state = None
-        self.do_quit: bool = False  #: Set to True to quit, thread safe quit mechanism
+        self.do_quit: bool = False  #: Set to True to quit.  Thread safe under CPython (GIL guarantees atomic bool read/write).
 
     def __repr__(self):
         return 'Context(name=%s)' % self._station['name']
@@ -299,10 +300,6 @@ class Context:
             except Exception:
                 self._log.exception('Device restore for %s', device_name)
         return result
-
-    def _progress_exists(self):
-        path = os.path.normpath(self.path('progress'))
-        return os.path.isfile(path)
 
     def _progress_open(self):
         path = os.path.normpath(self.path('progress'))
@@ -592,6 +589,8 @@ class Context:
         :return: The value entered by the user.
         """
         prompt_str = str(prompt_str)
+        if not self._cbk['prompt']:
+            raise RuntimeError('prompt() called with no prompt callbacks registered')
         p = f'prompt({prompt_str})'
         self.progress('__prompt_enter__ ' + p)
         try:
@@ -603,6 +602,7 @@ class Context:
                     if result_str is not None:
                         self._log.info('prompt(%s) -> %s', prompt_str, result_str)
                         return result_str
+                sleep(0.01)
         finally:
             self.progress('__prompt_exit__ ' + p)
 

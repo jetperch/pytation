@@ -15,8 +15,8 @@
 from .version import *
 from .context import Context
 from .analysis import AnalysisContext
-from .api import declare_test
+from .api import declare_test, TestContext
 
-__all__ = ['Context', 'AnalysisContext', 'declare_test',
+__all__ = ['Context', 'TestContext', 'AnalysisContext', 'declare_test',
            '__version__', '__title__', '__description__', '__url__',
            '__author__', '__author_email__', '__license__', '__copyright__']

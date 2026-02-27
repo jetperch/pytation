@@ -20,7 +20,7 @@ import argparse
 
 
 @declare_test(['dut'])
-def test2(context: Context, config: dict[str, object]):
+def my_test2(context: Context, config: dict[str, object]):
     return 0
 
 
@@ -95,8 +95,8 @@ class TestValidator(unittest.TestCase):
             'name': 'station1',
             'tests': [
                 {'fn': self.test1},
-                {'fn': test2},
-                {'name': 'test3', 'fn': test2},
+                {'fn': my_test2},
+                {'name': 'test3', 'fn': my_test2},
             ],
             'devices': [
                 {'name': 'eq1', 'clz': self.eq1, 'config': {}},
@@ -108,13 +108,13 @@ class TestValidator(unittest.TestCase):
         self.assertEqual('test1', tests[0]['name'])
         self.assertEqual(['dut', 'eq1'], tests[0]['devices'])
         self.assertEqual({}, tests[0]['config'])
-        self.assertEqual('test2', tests[1]['name'])
+        self.assertEqual('my_test2', tests[1]['name'])
         self.assertEqual('test3', tests[2]['name'])
 
     def test_duplicate_test_name(self):
         station = {
             'name': 'station1',
-            'tests': [{'fn': test2}, {'fn': test2}],
+            'tests': [{'fn': my_test2}, {'fn': my_test2}],
             'devices': [{'clz': self.dut, 'lifecycle': 'suite', 'config': {'mode': 'test'}}],
         }
         with self.assertRaises(ValueError):
@@ -123,7 +123,7 @@ class TestValidator(unittest.TestCase):
     def test_duplicate_device_name(self):
         station = {
             'name': 'station1',
-            'tests': [{'fn': test2}],
+            'tests': [{'fn': my_test2}],
             'devices': [{'clz': self.dut}, {'clz': self.dut}],
         }
         with self.assertRaises(ValueError):
@@ -132,7 +132,7 @@ class TestValidator(unittest.TestCase):
     def test_invalid_device_lifecycle(self):
         station = {
             'name': 'station1',
-            'tests': [{'fn': test2}],
+            'tests': [{'fn': my_test2}],
             'devices': [{'clz': self.dut, 'lifecycle': 'invalid'}],
         }
         with self.assertRaises(ValueError):
@@ -142,7 +142,7 @@ class TestValidator(unittest.TestCase):
         dut2 = Mock(['setup', 'restore', 'teardown'])
         station = {
             'name': 'station1',
-            'tests': [{'fn': test2}],
+            'tests': [{'fn': my_test2}],
             'devices': [{'clz': self.dut}, {'name': 'dut2', 'clz': dut2}, {'clz': DutEmpty}],
         }
         station = loader.validate(station)
