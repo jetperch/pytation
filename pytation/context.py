@@ -631,7 +631,10 @@ class Context:
               - prompt_str: The string to display to the user
               - returns the string entered by the user or None on error.
         :raise KeyError: if name is not valid
+        :raise ValueError: if cbk is not callable
         """
+        if not callable(cbk):
+            raise ValueError(f'callback {cbk!r} is not callable')
         self._cbk[name].append(cbk)
 
     def callback_unregister(self, name, cbk):
