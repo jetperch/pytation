@@ -4,6 +4,13 @@
 This file contains the list of changes made to pytation.
 
 
+## 0.3.0
+
+2026 Feb 26 [in progress]
+
+* Fixed issues raised by design review.
+
+
 ## 0.2.4
 
 2022 Nov 30
