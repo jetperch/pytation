@@ -19,6 +19,53 @@ Project links:
 * [Source Code](https://github.com/jetperch/pytation/) on GitHub
 
 
+## Terminology and Architecture
+
+A **station** represents a physical test setup — the equipment, instruments,
+and fixtures used to test hardware units.  A station starts once, opens
+long-lived equipment, and runs continuously until the operator shuts it down.
+
+Each unit under test goes through a **suite** — a single pass through the
+full list of tests.  The suite captures all results for that unit into a
+ZIP file and then resets so the next unit starts fresh.  A station runs
+suites in a loop: load a unit, run the suite, save results, repeat.
+
+A **test** is a single test function within a suite.  Each test receives a
+**context** object that provides access to devices, configuration,
+environment variables, the output filesystem, and user interaction
+(prompts, wait-for-user, progress reporting).
+
+A **device** is a piece of equipment or instrument (e.g. a power supply,
+oscilloscope, or the device under test itself).  Each device has a
+**lifecycle** that controls when it is opened and closed:
+
+* **station** (default) — opened once at station start, closed at station stop.
+* **suite** — opened and closed with each suite (each unit).
+* **test** — opened and closed around each individual test.
+* **manual** — opened and closed explicitly by test code.
+
+A **runner** drives the station.  Pytation provides two built-in runners:
+
+* **GUI runner** — a PySide6 graphical interface with state images, progress
+  bars, and prompt dialogs.
+* **CLI runner** — a command-line interface for headless or scripted operation.
+
+The execution lifecycle is:
+
+    station_start
+    │   station_setup
+    │   for each unit:
+    │   │   suite_setup          (e.g. wait for operator to load unit)
+    │   │   for each test:
+    │   │   │   test_setup
+    │   │   │   test function    (receives Context)
+    │   │   │   test_teardown
+    │   │   suite_teardown       (e.g. display PASS/FAIL, wait for removal)
+    │   │   save results to ZIP
+    station_stop
+        station_teardown
+
+
 ## Quick Start
 
 You will need Python 3.9 or newer.  You can install this package using pip:

@@ -20,7 +20,7 @@ Handle test context.
 from pytation import time, __version__
 from pytation.progress import Progress
 from pytation.loader import SETUP_TEARDOWN_FN, ENV_EXCLUDE
-from pytation.keywords import *
+from pytation.keywords import PYTATION_RETURN_CODE_SKIP_REMAINING_TESTS
 from pytation import pretty_json
 from fs.zipfs import WriteZipFS
 from copy import deepcopy
@@ -35,7 +35,7 @@ _FILE_FMT = "%(levelname)s:%(asctime)s:%(filename)s:%(lineno)d:%(name)s:%(messag
 _VALID_CHARS = \
     '-_. ' \
     + ''.join([chr(ord('a') + a) for a in range(26)]) \
-    + ''.join([chr(ord('a') + a) for a in range(26)]) \
+    + ''.join([chr(ord('A') + a) for a in range(26)]) \
     + ''.join([chr(ord('0') + a) for a in range(10)])
 
 
@@ -44,15 +44,6 @@ def sanitize_filename(s):
     s = s.replace(' ', '_')  # spaces to underscore
     s = s[:64]  # truncate as needed
     return s
-
-
-def _time_finalize(d):
-    time_end = time.now()
-    time_start = time.str_to_time(d['start'])
-    duration = (time_end - time_start).total_seconds()
-    d['end'] = time_end.isoformat()
-    d['duration'] = str(duration)
-    return d
 
 
 class DictReadOnlyWrapper(Mapping):
@@ -86,7 +77,7 @@ class Context:
         self._log = logging.getLogger('pytation')
         self._log.setLevel(logging.DEBUG)
         self._env = {}  # cache station init to restore after each suite
-        self.env: dict[str: object] = station['env']  #: The station environment
+        self.env: dict[str, object] = station['env']  #: The station environment
         self._station = station
 
         self._progress: Progress = None
@@ -99,7 +90,6 @@ class Context:
         self._cbk = {'progress': [], 'state': [], 'wait_for_user': [], 'prompt': []}
         self._progress_data = []
         self._progress_file = None
-        self._progress_cbk = None
         self._station_log_handler = None
         self._suite_logfile = None
         self._suite_log_file_handler = None
@@ -275,9 +265,9 @@ class Context:
             if self._fs is not None and name not in SETUP_TEARDOWN_FN:
                 self.fs = self._fs.makedir(fname)
 
-            for d in d['devices']:
-                if d not in self._devices:
-                    raise RuntimeError(f'required device {d} not found')
+            for device in d['devices']:
+                if device not in self._devices:
+                    raise RuntimeError(f'required device {device} not found')
 
             with self.section(name):
                 if not callable(fn) and hasattr(fn, 'run'):
@@ -685,4 +675,4 @@ class Section:
             * A fractional floating point value between 0.0 (starting) and 1.0 (done)
             * An arbitrary string event name
         """
-        return self._parent.progress(progress)
+        return self._context.progress(progress)
