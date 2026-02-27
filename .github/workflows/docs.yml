@@ -36,9 +36,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install python dependencies
-        run: |
-          pip3 install --upgrade pip setuptools
-          pip3 install -U -r requirements.txt -r docs/requirements.txt
+        run: pip3 install -U -r requirements.txt -r docs/requirements.txt
       - name: Build documentation
         run: python3 setup.py docs
       - name: Setup Pages

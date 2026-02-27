@@ -45,9 +45,7 @@ jobs:
           python3 -VV
 
       - name: Install python dependencies
-        run: |
-          pip3 install --upgrade pip setuptools
-          pip3 install -U -r requirements.txt
+        run: pip3 install -U -r requirements.txt
 
       - name: Run python unit tests
         run: python3 -m unittest
