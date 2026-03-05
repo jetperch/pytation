@@ -1,0 +1,59 @@
+# SPDX-FileCopyrightText: Copyright 2021-2026 Jetperch LLC
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# GitHub actions
+# See documentation: https://docs.github.com/en/actions
+
+name: Build
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.14"]
+
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v4
+
+      - name: Configure python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install python dependencies
+        run: |
+          python -VV
+          python -m pip3 install -U -r requirements.txt
+
+      - name: Run python unit tests
+        run: python -m unittest
+
+      - name: Build python source package
+        run: python3 setup.py sdist
+
+      - name: Publish packages to PyPi
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: pypa/gh-action-pypi-publish@v1.13.0
+        with:
+          print-hash: true
+
+      - name: Upload python packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: dist/*
