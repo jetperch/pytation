@@ -4,6 +4,13 @@
 This file contains the list of changes made to pytation.
 
 
+## 0.3.1
+
+2026 Mar 5
+
+* Fixed GitHub actions.
+
+
 ## 0.3.0
 
 2026 Mar 4
