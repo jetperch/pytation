@@ -20,6 +20,6 @@
 requires = [
     "fs",
     "PySide6",
-    "setuptools",
+    "setuptools<82",
     "wheel",
 ]
