@@ -38,13 +38,13 @@ jobs:
       - name: Install python dependencies
         run: |
           python -VV
-          python -m pip3 install -U -r requirements.txt
+          python -m pip install -U -r requirements.txt
 
       - name: Run python unit tests
         run: python -m unittest
 
       - name: Build python source package
-        run: python3 setup.py sdist
+        run: python setup.py sdist
 
       - name: Publish packages to PyPi
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
