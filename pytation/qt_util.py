@@ -20,12 +20,14 @@ import subprocess
 
 def rcc_path():
     import PySide6
-    # As of PySide2 5.15.0, the pyside2-rcc executable ignores the --binary flag
     path = os.path.dirname(PySide6.__file__)
     fname = [n for n in os.listdir(path) if n.startswith('rcc')]
-    if len(fname) != 1:
-        raise ValueError('Could not find rcc executable')
-    return os.path.join(path, fname[0])
+    if len(fname) == 1:
+        return os.path.join(path, fname[0])
+    p = shutil.which('pyside6-rcc')
+    if p is not None:
+        return p
+    raise ValueError('Could not find rcc executable')
 
 
 def convert_rcc(path):
