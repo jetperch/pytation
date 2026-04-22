@@ -17,7 +17,7 @@
 
 # Pytation
 
-[![Windows](https://github.com/jetperch/pytation/actions/workflows/windows.yml/badge.svg)](https://github.com/jetperch/pytation/actions/workflows/windows.yml)
+[![Build](https://github.com/jetperch/pytation/actions/workflows/build.yml/badge.svg)](https://github.com/jetperch/pytation/actions/workflows/build.yml)
 [![Documentation](https://github.com/jetperch/pytation/actions/workflows/docs.yml/badge.svg)](https://github.com/jetperch/pytation/actions/workflows/docs.yml)
 
 Welcome to the Pytation project!  Use Pytation to quickly build reliable
