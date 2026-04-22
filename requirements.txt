@@ -1,4 +1,3 @@
-fs
 myst-parser
 PySide6
 pywin32; sys_platform == 'win32'

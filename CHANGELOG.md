@@ -21,6 +21,22 @@
 This file contains the list of changes made to pytation.
 
 
+## 0.4.0
+
+2026 Apr 22
+
+* Removed dependency on the unmaintained `fs` (PyFilesystem2) package,
+  which relied on the deprecated `pkg_resources` API.
+* Added `pytation.zipfs` module with `ZipWriteFS` and `ZipReadFS`,
+  backed by the Python standard library (`zipfile` + `tempfile`),
+  replacing the previous use of `fs.zipfs.WriteZipFS` / `ReadZipFS`.
+  The write path stages to a temporary directory so that `log.txt`
+  and `progress.csv` can remain open for the duration of a suite,
+  matching the previous behavior.
+* Preserved the public `context.fs.open(name, mode)` API so existing
+  test and analysis modules continue to work without modification.
+
+
 ## 0.3.1
 
 2026 Mar 5

@@ -181,7 +181,6 @@ setuptools.setup(
     # See https://packaging.python.org/en/latest/requirements.html
     # https://numpy.org/neps/nep-0029-deprecation_policy.html
     install_requires=[
-        'fs',
         "pywin32; platform_system=='Windows'",
         'PySide6',
     ],

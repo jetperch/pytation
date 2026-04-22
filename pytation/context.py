@@ -22,7 +22,7 @@ from pytation.progress import Progress
 from pytation.loader import SETUP_TEARDOWN_FN, ENV_EXCLUDE
 from pytation.keywords import PYTATION_RETURN_CODE_SKIP_REMAINING_TESTS
 from pytation import pretty_json
-from fs.zipfs import WriteZipFS
+from pytation.zipfs import ZipWriteFS
 from copy import deepcopy
 from collections.abc import Mapping
 import importlib
@@ -371,9 +371,7 @@ class Context:
         path = os.path.normpath(self.path('output'))
         self._log.info('suite file path = %s', path)
         self._create_file_path_as_needed(path)
-        self._fs = WriteZipFS(file=path,
-                              compression=zipfile.ZIP_STORED,
-                              temp_fs='temp://pytation')
+        self._fs = ZipWriteFS(path, compression=zipfile.ZIP_STORED)
         self._fs_path = path
         self._station['env'] = dict([(key, value) for key, value in self.env.items() if key not in ENV_EXCLUDE])
         with self._fs.open('station.json', 'wt') as f:

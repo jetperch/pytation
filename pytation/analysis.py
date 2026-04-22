@@ -17,7 +17,7 @@
 Handle analysis context.
 """
 
-from fs.zipfs import ReadZipFS
+from pytation.zipfs import ZipReadFS
 import glob
 import importlib
 import json
@@ -39,7 +39,7 @@ class AnalysisContext():
         self.details = None  # The arbitrary test details
         if not os.path.isfile(path):
             raise ValueError(f'path not found: {path}')
-        self._fs = ReadZipFS(file=path)  #: The filesystem for the test
+        self._fs = ZipReadFS(path)  #: The filesystem for the test
         with self._fs.open('tests.json', 'rt') as f:
             self.tests = json.load(f)
         with self._fs.open('station.json', 'rt') as f:
