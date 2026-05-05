@@ -151,6 +151,7 @@ def validate(station):
     s = {}
     s['name'] = station['name']
     s['full_name'] = station.get('full_name', station['name'])
+    s['version'] = station.get('version')
 
     # Construct the environment
     station_start_time = time.now()

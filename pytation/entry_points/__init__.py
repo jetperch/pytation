@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import analyze, cli, gui
+from . import analyze, cli, gui, log
 
-__all__ = ['analyze', 'cli', 'gui']
+__all__ = ['analyze', 'cli', 'gui', 'log']

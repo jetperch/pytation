@@ -96,6 +96,7 @@ class Context:
         self._suite_log_file_handler = None
         self._tests = []     # The list of test outputs
         self._sections = []  # list of [name, start_time]
+        self._untimed = []  # list of [name, start_time] for active untimed scopes
         self._state = None
         self.do_quit: bool = False  #: Set to True to quit.  Thread safe under CPython (GIL guarantees atomic bool read/write).
 
@@ -120,6 +121,16 @@ class Context:
                 fn(state_info)
             except Exception:
                 self._log.exception('during state callback')
+
+    def _state_set_if_defined(self, s):
+        """Set state to ``s`` if the station defines it, otherwise no-op.
+
+        Used for lifecycle states (``initialize``, ``abort``) that are
+        optional - stations that don't define them simply skip the
+        transition rather than crash.
+        """
+        if s in self._station.get('states', {}):
+            self.state = s
 
     def _create_file_path_as_needed(self, path):
         dirpath = os.path.dirname(path)
@@ -323,10 +334,14 @@ class Context:
         """
         self._station_log_open()
         self._log.info('pytation version = %s', __version__)
+        station_version = self._station.get('version')
+        if station_version is not None:
+            self._log.info('station version = %s', station_version)
+        self._state_set_if_defined('initialize')
         try:
             self._devices_open('station', True)
         except Exception:
-            self._log.error('Could not open all devices')
+            self._log.exception('Could not open all devices')
             self._devices_close('station')
             raise
         self.test_run(self._station.get('station_setup'))
@@ -348,16 +363,24 @@ class Context:
         :param count: The number of times to run the test suite.
             None (default) runs indefinitely.
         """
-        self.station_start()
-        c = 0
         try:
-            while count is None or c < count:
-                if self.do_quit:
-                    break
-                self.suite_run()
-                c += 1
-        except KeyboardInterrupt:
-            self._log.info('KeyboardInterrupt stopped station')
+            try:
+                self.station_start()
+            except Exception:
+                # station_start logs the exception; surface it to the GUI
+                # via the 'abort' state (if defined) so the operator sees a
+                # clear failure indication rather than a frozen window.
+                self._state_set_if_defined('abort')
+                return
+            c = 0
+            try:
+                while count is None or c < count:
+                    if self.do_quit:
+                        break
+                    self.suite_run()
+                    c += 1
+            except KeyboardInterrupt:
+                self._log.info('KeyboardInterrupt stopped station')
         finally:
             self.station_stop()
 
@@ -537,6 +560,50 @@ class Context:
         duration = stop_time - start_time
         self._log.info('%s: done, duration=%.3f seconds', section_name, duration)
 
+    def untimed(self, name):
+        """Mark a region whose duration should be excluded from analysis.
+
+        :param name: The name for the untimed region.
+        :return: A context manager for use in a ``with`` statement.
+
+        Use this to wrap human-action waits (e.g. waiting for an operator
+        to insert a DUT) so they do not inflate the test's reported
+        duration in log analysis.
+
+        Example::
+
+            with self.untimed('wait for fixture'):
+                wait_for_operator()
+        """
+        return Untimed(self, name)
+
+    def untimed_enter(self, name):
+        """Begin an untimed region.
+
+        :param name: The name for the untimed region.
+        :see: untimed()
+
+        Call untimed_exit() when done.  Alternatively, consider using
+        untimed().
+        """
+        self._untimed.append([name, time.now()])
+        self._log.info('--- UNTIMED START %s --- ', name)
+
+    def untimed_exit(self, name=None):
+        """End an untimed region.
+
+        :param name: The optional name that will be matched against the
+            expected exit.
+        :raise RuntimeError: If name does not match.
+        """
+        if not len(self._untimed):
+            raise RuntimeError('untimed_exit with no active untimed region')
+        u_name, _start = self._untimed.pop()
+        if name is not None and u_name != name:
+            raise RuntimeError(
+                f'untimed_exit name mismatch: {name} != {u_name}')
+        self._log.info('--- UNTIMED DONE %s --- ', u_name)
+
     def _progress_update(self, progress):
         """Inform callbacks about total suite progress.
 
@@ -677,3 +744,20 @@ class Section:
             * An arbitrary string event name
         """
         return self._context.progress(progress)
+
+
+class Untimed:
+
+    def __init__(self, context, name):
+        self._context = context
+        self._name = name
+
+    def __str__(self):
+        return f'Untimed({self._name})'
+
+    def __enter__(self):
+        self._context.untimed_enter(self._name)
+        return self
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        self._context.untimed_exit(self._name)

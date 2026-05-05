@@ -189,11 +189,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self._vertical_layout.addWidget(self._progress_bar)
 
         self._logging_configure()
-        self._log.info('\n**************************************' +
-                       '\n* STATION=%s' +
-                       '\n* VERSION=%s' +
-                       '\n**************************************',
-                       station['name'], __version__)
+        banner_lines = [
+            '\n**************************************',
+            f'* STATION={station["name"]}',
+        ]
+        station_version = station.get('version')
+        if station_version is not None:
+            banner_lines.append(f'* STATION_VERSION={station_version}')
+        banner_lines.append(f'* PYTATION_VERSION={__version__}')
+        banner_lines.append('**************************************')
+        self._log.info('\n'.join(banner_lines))
         self._log_demo()
 
         self._shortcut_spacebar = QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Space), self)

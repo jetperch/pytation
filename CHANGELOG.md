@@ -21,6 +21,14 @@
 This file contains the list of changes made to pytation.
 
 
+## 0.5.0
+
+2026 May 5
+
+* Added untimed sections
+* Added timing analysis of log files
+
+
 ## 0.4.0
 
 2026 Apr 22
