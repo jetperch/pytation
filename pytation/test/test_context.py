@@ -148,4 +148,5 @@ class TestContext(unittest.TestCase):
         context = Context(station)
         context.callback_register('state', cbk)
         context.station_run(count=1)
-        cbk.assert_called_once()
+        cbk.assert_any_call({'name': 'initialize'})
+        cbk.assert_any_call({'name': 'in_progress'})
