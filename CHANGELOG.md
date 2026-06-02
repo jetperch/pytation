@@ -21,6 +21,13 @@
 This file contains the list of changes made to pytation.
 
 
+## 0.5.1
+
+2026 Jun 2
+
+* Wrapped wait_for_user in an untimed section.
+
+
 ## 0.5.0
 
 2026 May 5

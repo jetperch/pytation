@@ -587,6 +587,7 @@ class Context:
         untimed().
         """
         self._untimed.append([name, time.now()])
+        self.progress('__untimed_enter__ ' + name)
         self._log.info('--- UNTIMED START %s --- ', name)
 
     def untimed_exit(self, name=None):
@@ -603,6 +604,7 @@ class Context:
             raise RuntimeError(
                 f'untimed_exit name mismatch: {name} != {u_name}')
         self._log.info('--- UNTIMED DONE %s --- ', u_name)
+        self.progress('__untimed_exit__ ' + name)
 
     def _progress_update(self, progress):
         """Inform callbacks about total suite progress.
@@ -638,14 +640,11 @@ class Context:
 
     def wait_for_user(self):
         """Wait for the user to perform an action."""
-        self.progress('__wait_enter__ wait_for_user')
-        try:
+        with self.untimed('__wait_enter__ wait_for_user'):
             for fn in self._cbk['wait_for_user']:
                 if self.do_quit:
                     raise KeyboardInterrupt('do_quit signaled')
                 fn()
-        finally:
-            self.progress('__wait_exit__ wait_for_user')
 
     def prompt(self, prompt_str):
         """Prompt the user for input.
