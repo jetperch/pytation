@@ -30,6 +30,8 @@ LOG_COLOR = {
     logging.DEBUG: QtGui.QColor(128, 128, 128),
 }
 
+_PROGRESS_BAR_HEIGHT = 25  # pixels
+
 
 class Handler(logging.Handler):
 
@@ -186,6 +188,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._progress_bar = QtWidgets.QProgressBar(self._central_widget)
         self._progress_bar.setObjectName('_progress_bar')
         self._progress_bar.setRange(0, 1000)
+        self._progress_bar.setMinimumHeight(_PROGRESS_BAR_HEIGHT)
         self._vertical_layout.addWidget(self._progress_bar)
 
         self._logging_configure()
