@@ -21,6 +21,13 @@
 This file contains the list of changes made to pytation.
 
 
+## 0.5.2
+
+2026 Jun 13 [in progress]
+
+* Added log message capture per test.
+
+
 ## 0.5.1
 
 2026 Jun 2

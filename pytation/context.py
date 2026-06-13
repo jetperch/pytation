@@ -29,10 +29,44 @@ import importlib
 import zipfile
 import os
 import logging
+import traceback
 from time import sleep
 
 
 _FILE_FMT = "%(levelname)s:%(asctime)s:%(filename)s:%(lineno)d:%(name)s:%(message)s"
+
+
+class _MessageCaptureHandler(logging.Handler):
+    """Capture WARNING+ log records into the active test's message list.
+
+    The handler captures only when :attr:`records` points to a list; when it
+    is None the handler is idle.  A single instance is installed on the root
+    logger for the station lifetime and re-targeted at each test's message
+    list by :meth:`Context.test_run`.
+    """
+
+    def __init__(self):
+        super().__init__(level=logging.WARNING)
+        self.records = None  # list (capturing) or None (idle)
+
+    def emit(self, record):
+        records = self.records
+        if records is None:
+            return
+        try:
+            message = record.getMessage()
+        except Exception:
+            message = str(record.msg)
+        if record.exc_info:
+            message = message + '\n' + ''.join(traceback.format_exception(*record.exc_info))
+        records.append({
+            'level': record.levelname,
+            'timestamp': record.created,
+            'name': record.name,
+            'file': record.filename,
+            'line': record.lineno,
+            'message': message,
+        })
 _VALID_CHARS = \
     '-_. ' \
     + ''.join([chr(ord('a') + a) for a in range(26)]) \
@@ -92,6 +126,7 @@ class Context:
         self._progress_data = []
         self._progress_file = None
         self._station_log_handler = None
+        self._message_handler = _MessageCaptureHandler()
         self._suite_logfile = None
         self._suite_log_file_handler = None
         self._tests = []     # The list of test outputs
@@ -269,6 +304,9 @@ class Context:
 
         self._log.info('--- TEST START %s --- ', name)
         test = {'name': name, 'config': config}
+        messages = []
+        test['messages'] = messages
+        self._message_handler.records = messages
         self.config = config
 
         try:
@@ -302,6 +340,7 @@ class Context:
             test['detail'] = detail
             test['config'] = config
             self._tests.append(test)
+            self._message_handler.records = None
             self.fs = None
             self.config = None
 
@@ -333,6 +372,7 @@ class Context:
         :note: Included in station_run().
         """
         self._station_log_open()
+        logging.getLogger().addHandler(self._message_handler)
         self._log.info('pytation version = %s', __version__)
         station_version = self._station.get('version')
         if station_version is not None:
@@ -355,6 +395,8 @@ class Context:
         """
         self.test_run(self._station.get('station_teardown'))
         self._devices_close('station')
+        logging.getLogger().removeHandler(self._message_handler)
+        self._message_handler.records = None
         self._station_log_close()
 
     def station_run(self, count=None):
@@ -465,7 +507,7 @@ class Context:
         try:
             for d in self._station['tests']:
                 if self.do_quit:
-                    test = {'name': 'quit', 'result': 1, 'detail': {}}
+                    test = {'name': 'quit', 'result': 1, 'detail': {}, 'messages': []}
                     self._tests.append(test)
                     return 1
                 self.test_run(self._station.get('test_setup'))
@@ -506,6 +548,26 @@ class Context:
                 rv = test['result']
         s.append('*** FAIL ***' if rv else '*** PASS ***')
         return '\n'.join(s)
+
+    def messages(self, name=None):
+        """Get the captured WARNING+ log messages for a test.
+
+        :param name: The test name, or None (default) to return the messages
+            for the first failing test.
+        :return: The list of message dicts, each with keys: level, timestamp,
+            name, file, line, message.  Empty if there are no messages or no
+            failing test.
+        :raises KeyError: if name is provided but no such test exists.
+        """
+        if name is not None:
+            for test in self._tests:
+                if test.get('name') == name:
+                    return test.get('messages', [])
+            raise KeyError(name)
+        for test in self._tests:
+            if test['result']:
+                return test.get('messages', [])
+        return []
 
     def section(self, name):
         """Create a new test section as a context manager.
