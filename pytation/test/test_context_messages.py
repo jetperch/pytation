@@ -135,6 +135,35 @@ class TestMessageCapture(unittest.TestCase):
         ctx.station_stop()
         self.assertTrue(holder.get('raised'))
 
+    def test_context_log_is_module_logger(self):
+        holder = {}
+
+        def fn(ctx):
+            holder['name'] = ctx.log.name
+            ctx.log.warning('via ctx.log')
+            return 1
+
+        def teardown(ctx):
+            holder['msgs'] = ctx.messages('t1')
+            return 0
+        _capture_fn(fn)
+        _capture_fn(teardown)
+        station = make_station(
+            tests=[{'name': 't1', 'fn': fn, 'config': {}}],
+            suite_teardown={'name': 'suite_teardown', 'fn': teardown, 'config': {}},
+        )
+        ctx = Context(station)
+        ctx.station_start()
+        ctx.suite_run()
+        ctx.station_stop()
+
+        # ctx.log is named for the test fn's module, like getLogger(__name__)
+        self.assertEqual(fn.__module__, holder['name'])
+        # logging through ctx.log is still captured into the test messages
+        self.assertIn('via ctx.log', [m['message'] for m in holder['msgs']])
+        # ctx.log is reset to the framework logger after each test
+        self.assertEqual('pytation', ctx.log.name)
+
     def test_idle_logging_outside_test_does_not_crash(self):
         station = make_station(tests=[])
         ctx = Context(station)

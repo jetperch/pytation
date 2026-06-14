@@ -21,12 +21,14 @@
 This file contains the list of changes made to pytation.
 
 
-## 0.5.2
+## 0.6.0
 
-2026 Jun 13 [in progress]
+2026 Jun 14
 
 * Added log message capture per test.
 * Increased thickness of progress bar.
+* Added Context.log instance to simplify logging.
+* Added results uploader with S3 and URL support included.
 
 
 ## 0.5.1

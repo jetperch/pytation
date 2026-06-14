@@ -185,6 +185,10 @@ setuptools.setup(
         'PySide6',
     ],
 
+    extras_require={
+        's3': ['boto3'],
+    },
+
     entry_points={
         'console_scripts': [
             'pytation=pytation.__main__:run',

@@ -14,6 +14,7 @@
 
 """The API for packages using this manufacturing test framework."""
 
+import logging
 from typing import Protocol, runtime_checkable
 from collections.abc import Mapping
 from pytation.analysis import AnalysisContext
@@ -35,6 +36,12 @@ class TestContext(Protocol):
 
     config: dict[str, object]
     """The test configuration, populated before each test."""
+
+    log: logging.Logger
+    """A logger named for the test's module, equivalent to
+    ``logging.getLogger(__name__)``.  Populated for the duration of each
+    test, so tests can simply call ``context.log.info(...)`` without
+    creating their own module-scope logger."""
 
     fs: object
     """The filesystem instance for use by the test (None between tests)."""
@@ -119,6 +126,10 @@ def test_prototype(context: TestContext):
     A module with a "run" function that conforms to this prototype
     may also be used as a test.  The module may also provide an
     "analysis" function conforming to the :func:`analysis_prototype`.
+
+    Use ``context.log`` to log from within a test.  It is a standard
+    :class:`logging.Logger` named for the test's module, so there is no
+    need to create a module-scope ``logging.getLogger(__name__)``.
     """
     return 0, {}
 
@@ -161,3 +172,42 @@ class Device:
     def teardown(self):
         """Finalize and close the device."""
         raise NotImplementedError("Device.teardown")
+
+
+class Uploader:
+    """A destination that uploads completed suite result files.
+
+    An uploader is declared in the station like a device, using ``clz``
+    (a class or ``'module.Class'`` string) and ``config``.  The framework
+    owns the background orchestration (worker thread, file detection,
+    oldest-first ordering, retry/back-off, and delete-after-confirmed-upload);
+    the uploader only knows how to transfer a single file.
+    """
+
+    NAME = ''
+    """The user-meaningful uploader name."""
+
+    def setup(self, context: TestContext, config: dict):
+        """Open and initialize the uploader.
+
+        :param context: The test station context.
+        :param config: The uploader configuration.
+        :raise Exception: on any error.
+        """
+        raise NotImplementedError("Uploader.setup")
+
+    def upload(self, path: str) -> bool:
+        """Upload a single file.
+
+        :param path: The path of the file to upload.
+        :return: True when receipt is confirmed, in which case the framework
+            deletes the local file.  Return False or raise to retain the file
+            and retry after a back-off interval.
+
+        Called from a background thread.
+        """
+        raise NotImplementedError("Uploader.upload")
+
+    def teardown(self):
+        """Finalize and close the uploader."""
+        raise NotImplementedError("Uploader.teardown")

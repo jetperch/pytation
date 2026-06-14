@@ -131,6 +131,29 @@ def _devices_validate(devices_list):
     return devices_map
 
 
+def _uploader_validate(uploader):
+    """Validate the optional single uploader definition.
+
+    :param uploader: The uploader def ``{'clz', 'config', 'name'}`` or None.
+    :return: The normalized uploader def, or None when absent.
+    """
+    if not uploader:
+        return None
+    u = dict(uploader)
+    clz = u['clz']
+    if 'name' in u:
+        name = u['name']
+    elif getattr(clz, 'NAME', ''):
+        name = clz.NAME
+    elif isinstance(clz, str):
+        name = clz.split('.')[-1]
+    else:
+        name = clz.__name__
+    u['name'] = name
+    u.setdefault('config', {})
+    return u
+
+
 def _handlers_validate(kwargs):
     handlers_map = {}
     for name, value in kwargs.items():
@@ -190,7 +213,8 @@ def validate(station):
     for k in SETUP_TEARDOWN_FN:
         s[k] = _test_validate(station.get(k, None))
     s['gui_resources'] = station.get('gui_resources', [])
-    
+    s['uploader'] = _uploader_validate(station.get('uploader'))  # None if absent
+
     return s
 
 

@@ -89,14 +89,20 @@ class ZipWriteFS:
     def close(self):
         if self._root is not self:
             return
+        # Write to a sibling temp file, then atomically rename into place so
+        # that directory watchers never observe a half-written archive.
+        # os.replace is atomic on POSIX and on Windows when source and
+        # destination share a volume (they do — same directory).
+        tmp_path = self._path + '.tmp'
         try:
-            with zipfile.ZipFile(self._path, 'w', compression=self._compression) as zf:
+            with zipfile.ZipFile(tmp_path, 'w', compression=self._compression) as zf:
                 for dirpath, _dirnames, filenames in os.walk(self._staging):
                     for fname in filenames:
                         abs_path = os.path.join(dirpath, fname)
                         rel = os.path.relpath(abs_path, self._staging)
                         arcname = rel.replace(os.sep, '/')
                         zf.write(abs_path, arcname)
+            os.replace(tmp_path, self._path)
         finally:
             self._tempdir.cleanup()
 

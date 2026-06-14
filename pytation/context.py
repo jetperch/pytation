@@ -96,6 +96,25 @@ class DictReadOnlyWrapper(Mapping):
         return iter(self._data)
 
 
+def _clz_instantiate(clz, name):
+    """Resolve a ``clz`` (class or ``'module.Class'`` string) to an instance.
+
+    :param clz: A class, an already-constructed instance with a ``setup``
+        method, or a ``'module.Class'`` string to import.
+    :param name: The component name, used for error messages.
+    :return: An instance with ``setup``/``teardown`` methods.
+    """
+    if isinstance(clz, str):
+        parts = clz.split('.')
+        module = importlib.import_module('.'.join(parts[:-1]))
+        clz = getattr(module, parts[-1])
+    if isinstance(clz, type):
+        return clz()
+    if hasattr(clz, 'setup'):
+        return clz
+    raise RuntimeError(f'Invalid clz for {name}')
+
+
 class Context:
     """Context for a test station that is provided to each test step.
 
@@ -111,11 +130,14 @@ class Context:
     def __init__(self, station):
         self._log = logging.getLogger('pytation')
         self._log.setLevel(logging.DEBUG)
+        self.log = self._log  #: Per-test logger; set to the test module's logger during test_run.
         self._env = {}  # cache station init to restore after each suite
         self.env: dict[str, object] = station['env']  #: The station environment
         self._station = station
 
         self._progress: Progress = None
+        self._uploader = None        # the api.Uploader instance, if any
+        self._upload_worker = None   # the UploadWorker driving it, if any
         self._devices: dict[str, object] = {}  #: string to device object
         self.devices: dict[str, object] = DictReadOnlyWrapper(self._devices)  #: dict[str, object]
         self.config: dict[str, object] = {}  #: The test configuration, populated before each test and saved after each test.
@@ -219,19 +241,7 @@ class Context:
     def device_open(self, name):
         self._log.info('device_open(%s)', name)
         d = self._station['devices'][name]
-        clz = d['clz']
-        if isinstance(clz, str):
-            parts = clz.split('.')
-            class_name = parts[-1]
-            module_name = '.'.join(parts[:-1])
-            module = importlib.import_module(module_name)
-            clz = getattr(module, class_name)
-        if isinstance(clz, type):
-            device = clz()
-        elif hasattr(clz, 'setup'):
-            device = clz
-        else:
-            raise RuntimeError(f'Invalid device clz for {name}')
+        device = _clz_instantiate(d['clz'], name)
         self.config, config = deepcopy(d['config']), self.config
         try:
             device.setup(self)
@@ -271,6 +281,36 @@ class Context:
                     # no graceful way to handle this, keep going and close all devices
                     # if problem persists, the _devices_open will likely fail and exit
 
+    def _uploader_start(self):
+        u = self._station.get('uploader')
+        if not u:
+            return
+        from pytation.uploader import UploadWorker
+        try:
+            obj = _clz_instantiate(u['clz'], u['name'])
+            obj.setup(self, deepcopy(u['config']))
+            watch_dir = os.path.dirname(os.path.normpath(self.path('output')))
+            self._upload_worker = UploadWorker(watch_dir, obj.upload)
+            self._uploader = obj
+            self._upload_worker.start()
+            self._log.info('uploader started: %s', u['name'])
+        except Exception:
+            # Non-fatal: results buffer locally; do not block manufacturing.
+            self._log.exception('uploader setup failed; uploads disabled')
+            self._upload_worker = None
+            self._uploader = None
+
+    def _uploader_stop(self):
+        if self._upload_worker is not None:
+            self._upload_worker.stop()  # drains pending uploads
+            self._upload_worker = None
+        if self._uploader is not None:
+            try:
+                self._uploader.teardown()
+            except Exception:
+                self._log.exception('uploader teardown failed')
+            self._uploader = None
+
     def test_run(self, d):
         """Run a test.
 
@@ -293,6 +333,8 @@ class Context:
         else:
             name = fn.__name__.split('.')[-1]
         d['name'] = name
+        module_path = getattr(fn, '__module__', None) or getattr(fn, '__name__', 'pytation')
+        self.log = logging.getLogger(module_path)
         config = d.get('config', {})
         config = deepcopy(config)
         fname = sanitize_filename(name)
@@ -343,6 +385,7 @@ class Context:
             self._message_handler.records = None
             self.fs = None
             self.config = None
+            self.log = self._log
 
         for device_name, device in self._devices.items():
             try:
@@ -386,6 +429,7 @@ class Context:
             raise
         self.test_run(self._station.get('station_setup'))
         self._env = deepcopy(self.env)
+        self._uploader_start()
 
     def station_stop(self):
         """Stop the test station.
@@ -393,6 +437,7 @@ class Context:
         :see: station_run()
         :note: Included in station_run().
         """
+        self._uploader_stop()
         self.test_run(self._station.get('station_teardown'))
         self._devices_close('station')
         logging.getLogger().removeHandler(self._message_handler)
