@@ -144,6 +144,64 @@ class TestMultipleSuiteRuns(unittest.TestCase):
         self.assertEqual(2, test1.call_count)
 
 
+class TestRetry(unittest.TestCase):
+
+    def test_retry_succeeds_after_failures(self):
+        fn = Mock(side_effect=[1, 1, 0])  # fail, fail, pass
+        fn.DEVICES = []
+        station = make_station(tests=[
+            {'name': 'flaky', 'fn': fn, 'config': {}, 'retry': 3},
+        ])
+        ctx = Context(station)
+        ctx.station_start()
+        result = ctx.suite_run()
+        self.assertEqual(0, result)
+        self.assertEqual(3, fn.call_count)  # initial + 2 retries
+        self.assertEqual(0, ctx.env['error_count'])  # discarded failures not counted
+        ctx.station_stop()
+
+    def test_retry_all_fail(self):
+        fn = _make_test_fn(return_value=1)
+        station = make_station(tests=[
+            {'name': 'flaky', 'fn': fn, 'config': {}, 'retry': 3},
+        ])
+        ctx = Context(station)
+        ctx.station_start()
+        result = ctx.suite_run()
+        self.assertNotEqual(0, result)
+        self.assertEqual(4, fn.call_count)  # initial + 3 retries
+        self.assertEqual(1, ctx.env['error_count'])  # only the final failure counts
+        ctx.station_stop()
+
+    def test_retry_default_is_single_attempt(self):
+        fn = _make_test_fn(return_value=1)
+        station = make_station(tests=[
+            {'name': 'once', 'fn': fn, 'config': {}},
+        ])
+        ctx = Context(station)
+        ctx.station_start()
+        result = ctx.suite_run()
+        self.assertNotEqual(0, result)
+        self.assertEqual(1, fn.call_count)
+        ctx.station_stop()
+
+    def test_retry_then_continue(self):
+        flaky = Mock(side_effect=[1, 0])  # fail, pass
+        flaky.DEVICES = []
+        nxt = _make_test_fn(return_value=0)
+        station = make_station(tests=[
+            {'name': 'flaky', 'fn': flaky, 'config': {}, 'retry': 3},
+            {'name': 'next', 'fn': nxt, 'config': {}},
+        ])
+        ctx = Context(station)
+        ctx.station_start()
+        result = ctx.suite_run()
+        self.assertEqual(0, result)
+        self.assertEqual(2, flaky.call_count)
+        nxt.assert_called_once()
+        ctx.station_stop()
+
+
 class TestTestSkip(unittest.TestCase):
 
     def test_skip_flag(self):

@@ -91,6 +91,9 @@ def _test_validate(test):
     t.setdefault('config', {})
     if 'devices' not in t:
         t['devices'] = getattr(fn, 'DEVICES', [])
+    retry = t.setdefault('retry', 0)
+    if not isinstance(retry, int) or retry < 0:
+        raise ValueError(f"test {t['name']!r}: 'retry' must be a non-negative int")
     return t
 
 

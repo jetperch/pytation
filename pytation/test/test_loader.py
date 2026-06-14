@@ -156,3 +156,31 @@ class TestValidator(unittest.TestCase):
             'devices': [],
         }
         station = loader.validate(station)
+
+    def test_retry_default(self):
+        station = {
+            'name': 'station1',
+            'tests': [{'fn': my_test2}],
+            'devices': [],
+        }
+        station = loader.validate(station)
+        self.assertEqual(0, station['tests'][0]['retry'])
+
+    def test_retry_value(self):
+        station = {
+            'name': 'station1',
+            'tests': [{'fn': my_test2, 'retry': 3}],
+            'devices': [],
+        }
+        station = loader.validate(station)
+        self.assertEqual(3, station['tests'][0]['retry'])
+
+    def test_retry_invalid(self):
+        for bad in [-1, 1.5, '3', None]:
+            station = {
+                'name': 'station1',
+                'tests': [{'fn': my_test2, 'retry': bad}],
+                'devices': [],
+            }
+            with self.assertRaises(ValueError):
+                loader.validate(station)

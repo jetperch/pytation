@@ -21,6 +21,13 @@
 This file contains the list of changes made to pytation.
 
 
+## 0.6.2
+
+2026 Jun 14
+
+* Added test "retry" feature.
+
+
 ## 0.6.1
 
 2026 Jun 14

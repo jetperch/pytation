@@ -350,6 +350,8 @@ class Context:
             - fn: The test function required.
             - skip: Boolean True skips this test.
             - config: The config dict to pass to fn (optional)
+            - retry: The number of additional attempts on failure (optional,
+              default 0).  Applied by suite_run(), not test_run() itself.
         :return: 0 on success or error code.
         """
         if d is None:
@@ -598,9 +600,20 @@ class Context:
                     test = {'name': 'quit', 'result': 1, 'detail': {}, 'messages': []}
                     self._tests.append(test)
                     return 1
-                self.test_run(self._station.get('test_setup'))
-                result = self.test_run(d)
-                self.test_run(self._station.get('test_teardown'))
+                retry = int(d.get('retry', 0))
+                attempt = 0
+                while True:
+                    tests_mark = len(self._tests)
+                    self.test_run(self._station.get('test_setup'))
+                    result = self.test_run(d)
+                    self.test_run(self._station.get('test_teardown'))
+                    if not result or result == PYTATION_RETURN_CODE_SKIP_REMAINING_TESTS \
+                            or attempt >= retry:
+                        break
+                    attempt += 1
+                    self._log.warning('--- TEST RETRY %s --- attempt %d of %d ---',
+                                      d['name'], attempt + 1, retry + 1)
+                    del self._tests[tests_mark:]  # discard the failed attempt
                 if result == PYTATION_RETURN_CODE_SKIP_REMAINING_TESTS:
                     break
                 elif result:
