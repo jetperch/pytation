@@ -41,7 +41,9 @@ class TestContext(Protocol):
     """A logger named for the test's module, equivalent to
     ``logging.getLogger(__name__)``.  Populated for the duration of each
     test, so tests can simply call ``context.log.info(...)`` without
-    creating their own module-scope logger."""
+    creating their own module-scope logger.  As a convenience it is also
+    callable: ``context.log('message')`` is a shortcut for
+    ``context.log.info('message')``."""
 
     fs: object
     """The filesystem instance for use by the test (None between tests)."""
@@ -129,7 +131,8 @@ def test_prototype(context: TestContext):
 
     Use ``context.log`` to log from within a test.  It is a standard
     :class:`logging.Logger` named for the test's module, so there is no
-    need to create a module-scope ``logging.getLogger(__name__)``.
+    need to create a module-scope ``logging.getLogger(__name__)``.  It is
+    also callable: ``context.log('message')`` logs at INFO level.
     """
     return 0, {}
 

@@ -67,6 +67,37 @@ class _MessageCaptureHandler(logging.Handler):
             'line': record.lineno,
             'message': message,
         })
+class _CallableLogger:
+    """A :class:`logging.Logger` proxy that is also directly callable.
+
+    ``context.log`` remains a standard logger, so ``context.log.info(...)``,
+    ``context.log.warning(...)``, ``context.log.name`` and friends all behave
+    exactly as before (attribute access is forwarded to the wrapped logger).
+    As a convenience -- handy from keypress handlers and quick test code --
+    calling it directly logs at INFO level::
+
+        context.log('Hello')            # == context.log.info('Hello')
+        context.log('value=%s', value)  # printf-style args are forwarded
+    """
+
+    def __init__(self, logger):
+        self._logger = logger
+
+    def __call__(self, msg, *args, **kwargs):
+        # stacklevel=2 so the log record reports the caller of context.log(),
+        # not this wrapper.
+        kwargs.setdefault('stacklevel', 2)
+        self._logger.info(msg, *args, **kwargs)
+
+    def __getattr__(self, name):
+        # Only invoked when normal lookup fails (i.e. not for ``_logger``),
+        # so this forwards every Logger attribute/method to the real logger.
+        return getattr(self._logger, name)
+
+    def __repr__(self):
+        return f'_CallableLogger({self._logger!r})'
+
+
 _VALID_CHARS = \
     '-_. ' \
     + ''.join([chr(ord('a') + a) for a in range(26)]) \
@@ -130,7 +161,7 @@ class Context:
     def __init__(self, station):
         self._log = logging.getLogger('pytation')
         self._log.setLevel(logging.DEBUG)
-        self.log = self._log  #: Per-test logger; set to the test module's logger during test_run.
+        self.log = _CallableLogger(self._log)  #: Per-test logger; set to the test module's logger during test_run.  Callable as a shortcut for log.info().
         self._env = {}  # cache station init to restore after each suite
         self.env: dict[str, object] = station['env']  #: The station environment
         self._station = station
@@ -334,7 +365,7 @@ class Context:
             name = fn.__name__.split('.')[-1]
         d['name'] = name
         module_path = getattr(fn, '__module__', None) or getattr(fn, '__name__', 'pytation')
-        self.log = logging.getLogger(module_path)
+        self.log = _CallableLogger(logging.getLogger(module_path))
         config = d.get('config', {})
         config = deepcopy(config)
         fname = sanitize_filename(name)
@@ -385,7 +416,7 @@ class Context:
             self._message_handler.records = None
             self.fs = None
             self.config = None
-            self.log = self._log
+            self.log = _CallableLogger(self._log)
 
         for device_name, device in self._devices.items():
             try:
@@ -523,27 +554,39 @@ class Context:
             self._progress_save()
 
     def _suite_stop(self):
-        # Progress complete at this stage
-        self.section_exit('s')
-        self._progress_file_close()
-        self._devices_close('suite')
-        self._progress_update(1.0)
-        self.test_run(self._station.get('suite_teardown'))
-        self._log.info('*** %s ***', 'FAIL' if self.result else 'PASS')
-        with self._fs.open('tests.json', 'wt') as f:
-            pretty_json.dump(self._tests, f)
-        if self._suite_log_file_handler:
+        try:
+            # Progress complete at this stage
+            self.section_exit('s')
+            self._progress_file_close()
+            self._devices_close('suite')
+            self._progress_update(1.0)
+            self.test_run(self._station.get('suite_teardown'))
+            self._log.info('*** %s ***', 'FAIL' if self.result else 'PASS')
+            with self._fs.open('tests.json', 'wt') as f:
+                pretty_json.dump(self._tests, f)
+        finally:
+            # Always release the suite log file and staging directory, even if
+            # the teardown above was interrupted.  A suite_teardown that calls
+            # wait_for_user()/prompt() raises KeyboardInterrupt when do_quit is
+            # signalled (e.g. the operator closes the window at the pass/fail
+            # screen); without this the staging temp dir leaks with log.txt
+            # still open, and its finalizer fails at interpreter exit.
+            self._suite_log_close()
+
+    def _suite_log_close(self):
+        """Close the suite log handler/file and pack+remove the staging dir."""
+        if self._suite_log_file_handler is not None:
             logging.getLogger().removeHandler(self._suite_log_file_handler)
             self._suite_log_file_handler.close()
             self._suite_log_file_handler = None
-        if self._suite_logfile:
+        if self._suite_logfile is not None:
             self._suite_logfile.close()
             self._suite_logfile = None
-
-        self._log.info('Writing zip file (may take a while): %s', self._fs_path)
-        self._fs.close()
-        self._fs = None
-        self._fs_path = None
+        if self._fs is not None:
+            self._log.info('Writing zip file (may take a while): %s', self._fs_path)
+            self._fs.close()
+            self._fs = None
+            self._fs_path = None
 
     def suite_run(self):
         rc = self._suite_start()

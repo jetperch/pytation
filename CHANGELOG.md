@@ -21,7 +21,7 @@
 This file contains the list of changes made to pytation.
 
 
-## 0.6.0
+## 0.6.1
 
 2026 Jun 14
 
@@ -29,6 +29,7 @@ This file contains the list of changes made to pytation.
 * Increased thickness of progress bar.
 * Added Context.log instance to simplify logging.
 * Added results uploader with S3 and URL support included.
+* Added automatic keymap dispatch and AdvancedFeaturesDialog.
 
 
 ## 0.5.1

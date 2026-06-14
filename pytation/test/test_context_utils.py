@@ -18,6 +18,11 @@ from pytation.context import sanitize_filename, DictReadOnlyWrapper, Context
 from pytation.test.test_helpers import make_station
 
 
+def sample_keymap_fn(context):
+    """Module-level function used to test string-based keymap fn resolution."""
+    return 'sample'
+
+
 class TestSanitizeFilename(unittest.TestCase):
 
     def test_valid_chars_preserved(self):
@@ -156,6 +161,39 @@ class TestHandler(unittest.TestCase):
         station = make_station()
         ctx = Context(station)
         self.assertIsNone(ctx.handler('anything'))
+
+
+class TestKeymapHandler(unittest.TestCase):
+
+    def test_callable_fn_preserved(self):
+        fn = lambda ctx: None
+        keymap = {'R': {'name': 'Reprint', 'description': 'desc', 'fn': fn}}
+        station = make_station(handlers={'qt_keypress': keymap})
+        resolved = station['handlers']['qt_keypress']
+        self.assertIs(fn, resolved['R']['fn'])
+        self.assertEqual('Reprint', resolved['R']['name'])
+
+    def test_string_fn_resolved(self):
+        keymap = {'S': {'name': 'Sample', 'description': 'desc',
+                        'fn': 'pytation.test.test_context_utils.sample_keymap_fn'}}
+        station = make_station(handlers={'qt_keypress': keymap})
+        resolved = station['handlers']['qt_keypress']
+        self.assertIs(sample_keymap_fn, resolved['S']['fn'])
+
+    def test_missing_field_raises(self):
+        keymap = {'R': {'name': 'Reprint', 'fn': lambda ctx: None}}  # no description
+        with self.assertRaises(ValueError):
+            make_station(handlers={'qt_keypress': keymap})
+
+    def test_uncallable_fn_raises(self):
+        keymap = {'R': {'name': 'Reprint', 'description': 'desc', 'fn': 42}}
+        with self.assertRaises(ValueError):
+            make_station(handlers={'qt_keypress': keymap})
+
+    def test_callable_handler_still_supported(self):
+        fn = lambda ctx, event: True
+        station = make_station(handlers={'qt_keypress': fn})
+        self.assertIs(fn, station['handlers']['qt_keypress'])
 
 
 class TestPath(unittest.TestCase):

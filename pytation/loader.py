@@ -154,13 +154,40 @@ def _uploader_validate(uploader):
     return u
 
 
+def _keymap_validate(keymap):
+    """Validate a dict-form keypress handler.
+
+    :param keymap: dict mapping a key (single character) to an entry
+        ``{'name', 'description', 'fn'}`` where ``fn`` is a ``callable(context)``
+        or a fully-qualified string resolved via :func:`_fn_load`.
+    :return: The normalized keymap with every ``fn`` resolved to a callable.
+    """
+    out = {}
+    for key, entry in keymap.items():
+        entry = dict(entry)
+        for field in ('name', 'description', 'fn'):
+            if field not in entry:
+                raise ValueError(f'keymap entry {key!r} missing {field!r}')
+        fn = entry['fn']
+        if isinstance(fn, str):
+            fn = _fn_load(fn)
+        if not callable(fn):
+            raise ValueError(f'Could not load keymap fn for {key!r}')
+        entry['fn'] = fn
+        out[key] = entry
+    return out
+
+
 def _handlers_validate(kwargs):
     handlers_map = {}
     for name, value in kwargs.items():
-        if isinstance(value, str):
-            value = _fn_load(value)
-        if not callable(value):
-            raise ValueError(f'Could not load handler {name}')
+        if isinstance(value, dict):
+            value = _keymap_validate(value)
+        else:
+            if isinstance(value, str):
+                value = _fn_load(value)
+            if not callable(value):
+                raise ValueError(f'Could not load handler {name}')
         handlers_map[name] = value
     return handlers_map
 

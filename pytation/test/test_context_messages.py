@@ -14,6 +14,7 @@
 
 
 import logging
+import os
 import unittest
 from pytation.context import Context
 from pytation.test.test_helpers import make_station
@@ -170,6 +171,116 @@ class TestMessageCapture(unittest.TestCase):
         ctx.station_start()
         _log.warning('between tests, handler idle')  # records is None
         ctx.station_stop()
+
+
+class TestSuiteStopCleanup(unittest.TestCase):
+    """The staging dir + log.txt must be released even on interrupted teardown."""
+
+    def test_teardown_interrupt_releases_staging(self):
+        holder = {}
+
+        def fn(ctx):
+            holder['staging'] = ctx._fs._staging  # capture while the suite is open
+            return 0
+
+        def teardown(ctx):
+            # Simulates do_quit during a suite_teardown wait_for_user(), which
+            # raises KeyboardInterrupt (e.g. operator closes the window).
+            raise KeyboardInterrupt('simulated quit')
+        _capture_fn(fn)
+        _capture_fn(teardown)
+        station = make_station(
+            tests=[{'name': 't1', 'fn': fn, 'config': {}}],
+            suite_teardown={'name': 'suite_teardown', 'fn': teardown, 'config': {}},
+        )
+        ctx = Context(station)
+        ctx.station_start()
+        with self.assertRaises(KeyboardInterrupt):
+            ctx.suite_run()
+
+        # Despite the interrupted teardown, the fs is closed and the staging
+        # temp dir (which held the open log.txt) is removed.
+        self.assertIsNone(ctx._fs)
+        self.assertFalse(os.path.exists(holder['staging']))
+        ctx.station_stop()
+
+
+class _ListHandler(logging.Handler):
+    """Capture every emitted record into a list."""
+
+    def __init__(self):
+        super().__init__(level=logging.DEBUG)
+        self.records = []
+
+    def emit(self, record):
+        self.records.append(record)
+
+
+class TestCallableLog(unittest.TestCase):
+    """``context.log`` is a standard Logger that is also directly callable."""
+
+    def _capture(self):
+        handler = _ListHandler()
+        root = logging.getLogger()
+        root.addHandler(handler)
+        self.addCleanup(root.removeHandler, handler)
+        return handler
+
+    def test_call_logs_at_info(self):
+        ctx = Context(make_station())
+        handler = self._capture()
+        ctx.log('hello %s', 'world')  # printf-style args forwarded
+        matches = [r for r in handler.records if r.getMessage() == 'hello world']
+        self.assertEqual(1, len(matches))
+        self.assertEqual(logging.INFO, matches[0].levelno)
+
+    def test_call_reports_caller_location(self):
+        # stacklevel=2 means the record points at this test, not context.py.
+        ctx = Context(make_station())
+        handler = self._capture()
+        ctx.log('locate me')
+        matches = [r for r in handler.records if r.getMessage() == 'locate me']
+        self.assertEqual(1, len(matches))
+        self.assertTrue(matches[0].filename.endswith('test_context_messages.py'))
+
+    def test_logger_interface_preserved(self):
+        ctx = Context(make_station())
+        self.assertTrue(callable(ctx.log))
+        self.assertEqual('pytation', ctx.log.name)
+        handler = self._capture()
+        ctx.log.warning('attr style')  # .info/.warning/etc still work
+        msgs = [r.getMessage() for r in handler.records]
+        self.assertIn('attr style', msgs)
+
+    def test_callable_during_test_with_module_logger(self):
+        holder = {}
+
+        def fn(ctx):
+            holder['callable'] = callable(ctx.log)
+            holder['name'] = ctx.log.name  # per-test module logger
+            ctx.log('info via call')       # must not raise
+            ctx.log.warning('warn via attr')
+            return 1
+
+        def teardown(ctx):
+            holder['msgs'] = ctx.messages('t1')
+            return 0
+        _capture_fn(fn)
+        _capture_fn(teardown)
+        station = make_station(
+            tests=[{'name': 't1', 'fn': fn, 'config': {}}],
+            suite_teardown={'name': 'suite_teardown', 'fn': teardown, 'config': {}},
+        )
+        ctx = Context(station)
+        ctx.station_start()
+        ctx.suite_run()
+        ctx.station_stop()
+
+        self.assertTrue(holder['callable'])
+        self.assertEqual(fn.__module__, holder['name'])
+        self.assertIn('warn via attr', [m['message'] for m in holder['msgs']])
+        # still callable after reset to the framework logger
+        self.assertTrue(callable(ctx.log))
 
 
 if __name__ == '__main__':

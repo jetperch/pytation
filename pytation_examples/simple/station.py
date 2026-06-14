@@ -87,6 +87,10 @@ def test1(context):
     return 0, {'hello': 'world'}
 
 
+def on_log_keypress(context):
+    context.log('Hello from log keypress')
+
+
 STATION = {
     'name': 'simple',
     'full_name': 'Simple test station example',
@@ -134,5 +138,15 @@ STATION = {
         {'name': 'eq1', 'clz': Eq1},
         {'name': 'dut', 'clz': Dut1, 'lifecycle': 'suite', 'config': {'mode': 'test'}},
     ],
-    'gui_resources': [['station', 'station.rcc']]  # list of [package, resource]
+    'handlers': {
+        # dict-form keymap: key -> {name, description, fn(context)}.  HOME opens
+        # the auto-populated Advanced Features dialog listing these hotkeys.
+        'qt_keypress': {
+            'L': {
+                'name': 'log',
+                'description': 'Log a message',
+                'fn': 'pytation_examples.simple.station.on_log_keypress'},
+        },
+    },
+    'gui_resources': [['pytation_examples.simple.station', 'station.rcc']]  # list of [package, resource]
 }

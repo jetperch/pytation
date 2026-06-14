@@ -82,6 +82,11 @@ class StationObject:
         self.wait_for_user = False
         self.prompt_result_str = None
 
+    @property
+    def context(self):
+        """The wrapped test Context."""
+        return self._context
+
     def _on_progress_cbk(self, progress):
         self._parent.on_message({'type': 'progress', 'data': progress})
 
@@ -111,9 +116,13 @@ class StationObject:
 
     def keyPressEvent(self, event: QtGui.QKeyEvent):
         handler = self._context.handler('qt_keypress')
-        if handler is not None:
+        if handler is None:
+            return False
+        if callable(handler):
             return handler(self._context, event)
-        return False
+        # handler is a dict-form keymap; the parent MainWindow owns the widgets
+        # needed to display the auto-populated "Advanced Features" dialog.
+        return self._parent.keymap_dispatch(self._context, handler, event)
 
     def run(self):
         self._log.info('Station thread starting')
@@ -123,6 +132,48 @@ class StationObject:
     @QtCore.Slot()
     def quit_request(self):
         self._context.do_quit = True
+
+
+class AdvancedFeaturesDialog(QtWidgets.QDialog):
+    """Modal dialog auto-populated from a dict-form ``qt_keypress`` keymap.
+
+    Displays one button per hotkey (with its name and description) plus
+    informational rows for the built-in keys.  Clicking a button records the
+    chosen ``fn`` in :attr:`selected_fn` and closes the dialog; the caller is
+    responsible for invoking it after the dialog closes.
+    """
+
+    def __init__(self, parent, keymap):
+        super(AdvancedFeaturesDialog, self).__init__(parent)
+        self.setWindowTitle('Advanced Features')
+        self.selected_fn = None
+        layout = QtWidgets.QVBoxLayout(self)
+
+        for key, entry in keymap.items():
+            btn = QtWidgets.QPushButton(f'[{key}]  {entry["name"]}', self)
+            description = entry.get('description', '')
+            btn.setToolTip(description)
+            btn.clicked.connect(lambda checked=False, e=entry: self._activate(e))
+            layout.addWidget(btn)
+            if description:
+                desc_label = QtWidgets.QLabel(description, self)
+                desc_label.setWordWrap(True)
+                layout.addWidget(desc_label)
+
+        line = QtWidgets.QFrame(self)
+        line.setFrameShape(QtWidgets.QFrame.HLine)
+        line.setFrameShadow(QtWidgets.QFrame.Sunken)
+        layout.addWidget(line)
+        layout.addWidget(QtWidgets.QLabel('Space — continue', self))
+        layout.addWidget(QtWidgets.QLabel('Esc — close window', self))
+
+        close_button = QtWidgets.QPushButton('Close', self)
+        close_button.clicked.connect(self.reject)
+        layout.addWidget(close_button)
+
+    def _activate(self, entry):
+        self.selected_fn = entry['fn']
+        self.accept()
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -207,6 +258,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self._shortcut_spacebar = QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Space), self)
         self._shortcut_spacebar.activated.connect(self._on_spacebar)
 
+        # Home opens the Advanced Features dialog.  Use a QShortcut (like Space
+        # above) rather than keyPressEvent: navigation keys such as Home are
+        # consumed by the focused child widget before they reach the top-level
+        # keyPressEvent, so the handler would otherwise never see them.
+        self._shortcut_home = QtGui.QShortcut(QtGui.QKeySequence(QtCore.Qt.Key_Home), self)
+        self._shortcut_home.activated.connect(self._on_home)
+
         # self.showFullScreen()
         self.showMaximized()
         self._station_start(station)
@@ -283,6 +341,40 @@ class MainWindow(QtWidgets.QMainWindow):
             self._station.wait_for_user = True
         event.accept()
 
+    def keymap_dispatch(self, context, keymap, event: QtGui.QKeyEvent):
+        """Dispatch a keypress against a dict-form ``qt_keypress`` keymap.
+
+        The HOME key opens the auto-populated Advanced Features dialog (also
+        wired through a QShortcut, see :meth:`_on_home`).  Any key matching a
+        keymap entry invokes its ``fn(context)``.  Returns True when the
+        keypress was handled, False to let it propagate.
+        """
+        key = event.key()
+        if key == QtCore.Qt.Key_Home:
+            self._show_advanced_features(context, keymap)
+            return True
+        for k, entry in keymap.items():
+            if key == ord(k.upper()):
+                entry['fn'](context)
+                return True
+        return False
+
+    def _show_advanced_features(self, context, keymap):
+        """Show the Advanced Features dialog and run the chosen hotkey's fn."""
+        dialog = AdvancedFeaturesDialog(self, keymap)
+        dialog.exec()
+        if dialog.selected_fn is not None:
+            dialog.selected_fn(context)
+
+    def _on_home(self):
+        """Open the Advanced Features dialog for a dict-form keymap (HOME)."""
+        if self._station is None:
+            return
+        context = self._station.context
+        handler = context.handler('qt_keypress')
+        if isinstance(handler, dict):
+            self._show_advanced_features(context, handler)
+
     def _on_spacebar(self):
         self._station.wait_for_user = True
 
@@ -346,9 +438,10 @@ def run(station):
     log = logging.getLogger()
     for package, data in station['gui_resources']:
         b = pkgutil.get_data(package, data)
-        log.info(f'resource {package} {data} => {len(b)} bytes')
         if b is None or not len(b):
             log.warning('Could not find resource: %s %s', package, data)
+            return 1
+        log.info(f'resource {package} {data} => {len(b)} bytes')
         if not QtCore.QResource.registerResourceData(b):
             log.warning('Could not register resource: %s %s', package, data)
         resources.append(b)
